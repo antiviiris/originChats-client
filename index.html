@@ -474,6 +474,22 @@
             renderMembers(channel);
         }
 
+        function formatTimestamp(unix) {
+            const d = new Date(unix * 1000);
+            const day = d.getDate();
+            const suffix = 
+                day % 10 === 1 && day !== 11 ? 'st' :
+                day % 10 === 2 && day !== 12 ? 'nd' :
+                day % 10 === 3 && day !== 13 ? 'rd' : 'th';
+
+            const month = d.toLocaleString('en-GB', { month: 'long' });
+            const year = d.getFullYear();
+            const time = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+            return `${day}${suffix} ${month} ${year}, ${time}`;
+            }
+
+
         function renderMessages() {
             const container = document.getElementById('messages');
             const messages = (state.messages[state.currentChannel.name] || []).slice().reverse();
@@ -499,10 +515,7 @@
                 const msg = messages[i];
                 const user = state.users[msg.user] || { username: msg.user };
                 const avatarUrl = `https://avatars.rotur.dev/${msg.user}?radius=128`;
-                const timestamp = new Date(msg.timestamp * 1000).toLocaleTimeString([], {
-                    hour: '2-digit',
-                    minute: '2-digit'
-                });
+                const timestamp = formatTimestamp(msg.timestamp);
 
                 const sameUser = msg.user === lastUser && (msg.timestamp - lastTime) < 300;
                 lastUser = msg.user;
