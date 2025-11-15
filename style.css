@@ -397,6 +397,7 @@ p {
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    height: 100%;
 }
 
 .messages {
@@ -405,6 +406,7 @@ p {
     padding: 15px;
     display: flex;
     flex-direction: column;
+    justify-content: flex-end;
 }
 
 .message {
