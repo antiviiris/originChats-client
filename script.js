@@ -273,6 +273,8 @@ function connectToServer() {
     };
 }
 
+const pingRegex = /@[^ ,.\W]+([ \n]|$)/g
+
 async function handleMessage(msg) {
     switch (msg.cmd) {
         case 'handshake':
@@ -360,26 +362,40 @@ async function handleMessage(msg) {
             }
             state.messages[msg.channel].push(msg.message);
 
+            const typing = state.typingUsers[msg.channel];
+            if (typing) {
+                if (typing.has(msg.message.user)) {
+                    typing.delete(msg.message.user);
+                    updateTypingIndicator();
+                }
+            }
+            
             if (state.currentUser && msg.message.user !== state.currentUser.username) {
                 const content = msg.message.content.toLowerCase();
                 const username = state.currentUser.username.toLowerCase();
 
-                if (content.includes('@' + username) || (content.includes('@everyone') && msg.message.user === state.server.owner)) {
-                    if (msg.channel !== state.currentChannel?.name) {
-                        if (!state.unreadPings[msg.channel]) {
-                            state.unreadPings[msg.channel] = 0;
+                const matches = content.match(pingRegex);
+
+                if (matches) {
+                    const pings = matches.filter(m => m.trim().toLowerCase() === '@' + username)
+                    
+                    if (pings.length > 0) {
+                        if (msg.channel !== state.currentChannel?.name) {
+                            if (!state.unreadPings[msg.channel]) {
+                                state.unreadPings[msg.channel] = 0;
+                            }
+                            state.unreadPings[msg.channel]++;
+                            renderChannels();
                         }
-                        state.unreadPings[msg.channel]++;
-                        renderChannels();
+
+                        playPingSound();
+
+                        const notifTitle = `${msg.message.user} mentioned you in #${msg.channel}`;
+                        const notifBody = msg.message.content.length > 100
+                            ? msg.message.content.substring(0, 100) + '...'
+                            : msg.message.content;
+                        showNotification(notifTitle, notifBody, msg.channel);
                     }
-
-                    playPingSound();
-
-                    const notifTitle = `${msg.message.user} mentioned you in #${msg.channel}`;
-                    const notifBody = msg.message.content.length > 100
-                        ? msg.message.content.substring(0, 100) + '...'
-                        : msg.message.content;
-                    showNotification(notifTitle, notifBody, msg.channel);
                 }
             }
 
@@ -405,7 +421,6 @@ async function handleMessage(msg) {
                 break;
             }
             const id = msg.id;
-            const message = state.messages[msg.channel].find(m => m.id === id);
             state.messages[msg.channel] = state.messages[msg.channel].filter(m => m.id !== id);
             if (msg.channel === state.currentChannel?.name) {
                 renderMessages();
@@ -424,7 +439,7 @@ async function handleMessage(msg) {
             if (channel === state.currentChannel?.name) {
                 const typingMap = state.typingUsers[channel];
 
-                const expireAt = Date.now() + 5000;
+                const expireAt = Date.now() + 10000;
                 typingMap.set(user, expireAt);
 
                 updateTypingIndicator();
@@ -698,7 +713,8 @@ function makeMessageElement(msg, isSameUserRecent) {
 
     if (state.currentUser) {
         const username = state.currentUser.username;
-        if (msg.content.includes('@' + username) || msg.content.includes('@everyone')) {
+        const matches = msg.content.match(pingRegex);
+        if (matches && matches.filter(m => m.trim().toLowerCase() === '@' + username).length > 0) {
             msgText.classList.add('mentioned');
         }
     }
