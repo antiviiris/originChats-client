@@ -224,7 +224,9 @@ window.onload = function () {
         }
         
         const input = document.getElementById('message-input');
-        if (input && document.activeElement !== input && e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        const active = document.activeElement;
+        const isInputFocused = active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.tagName === 'SELECT' || active.isContentEditable);
+        if (input && active !== input && !isInputFocused && e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
             e.preventDefault();
             input.focus();
             const startPos = input.selectionStart;
