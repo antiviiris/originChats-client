@@ -135,11 +135,11 @@ function playPingSound() {
 window.onload = function () {
     requestNotificationPermission();
 
-    
+
     const savedToken = localStorage.getItem('originchats_token');
     const savedServers = localStorage.getItem('originchats_servers');
-    
-    
+
+
     if (!savedServers) {
         state.servers = [...DEFAULT_SERVERS];
         localStorage.setItem('originchats_servers', JSON.stringify(state.servers));
@@ -147,18 +147,18 @@ window.onload = function () {
         state.servers = JSON.parse(savedServers);
     }
 
-    
+
     const savedLastChannels = localStorage.getItem('originchats_last_channels');
     if (savedLastChannels) {
         state.lastChannelByServer = JSON.parse(savedLastChannels);
     }
-    
+
     const savedDMServers = localStorage.getItem('originchats_dm_servers');
     if (savedDMServers) {
         state.dmServers = JSON.parse(savedDMServers);
     }
-    
-    
+
+
     state.servers.forEach(server => {
         if (!state.unreadCountsByServer[server.url]) {
             state.unreadCountsByServer[server.url] = 0;
@@ -171,7 +171,7 @@ window.onload = function () {
         state.serverPingsByServer['dms.mistium.com'] = 0;
     }
 
-    
+
     renderGuildSidebar();
 
     const urlParams = new URLSearchParams(window.location.search);
@@ -222,7 +222,7 @@ window.onload = function () {
         }
     });
 
-    
+
     let touchStartX = 0;
 
     if (window.lucide) window.lucide.createIcons();
@@ -247,14 +247,14 @@ window.onload = function () {
         }
     }
 
-    
+
     document.addEventListener('click', function (e) {
         if (!e.target.closest('.server-info')) {
             closeServerDropdown();
         }
     });
 
-    
+
     document.addEventListener('keydown', function (e) {
         if (e.key === 'Escape') {
             closeSettings();
@@ -268,7 +268,7 @@ window.onload = function () {
                 cancelReply();
             }
         }
-        
+
         const input = document.getElementById('message-input');
         const active = document.activeElement;
         const isInputFocused = active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.tagName === 'SELECT' || active.isContentEditable);
@@ -289,7 +289,7 @@ window.onload = function () {
 
     window.shortcodes = null;
     window.shortcodeMap = {};
-    
+
     fetch("shortcodes.json")
         .then(response => response.json())
         .then(data => {
@@ -308,8 +308,8 @@ window.onload = function () {
                     }
                 }
             }
-            
-            
+
+
             const picker = document.querySelector('.reaction-picker');
             if (picker && picker.classList.contains('active')) {
                 if (window.renderEmojis) {
@@ -392,21 +392,21 @@ function openSettings() {
 function openAccountModal(username) {
     const modal = document.getElementById('account-modal');
     const content = document.getElementById('account-content');
-    
+
     modal.classList.add('active');
-    
-    
+
+
     content.innerHTML = `
         <div class="account-loading">
             <div class="account-loading-spinner"></div>
             <div class="account-loading-text">Loading profile...</div>
         </div>
     `;
-    
-    
+
+
     fetchAccountProfile(username);
-    
-    
+
+
     if (window.lucide) window.lucide.createIcons({ root: content });
 }
 
@@ -449,30 +449,30 @@ function updateGuildActiveState() {
 }
 
 function showHome() {
-    
+
     if (state.serverUrl !== 'dms.mistium.com') {
         switchServer('dms.mistium.com');
     }
 }
 
 async function fetchAccountProfile(username) {
-    
+
     if (accountCache[username] && Date.now() - accountCache[username]._timestamp < 60000) {
         renderAccountProfile(accountCache[username]);
         return;
     }
-    
+
     try {
         const response = await fetch(`https://api.rotur.dev/profile?include_posts=0&name=${encodeURIComponent(username)}`);
-        
+
         if (!response.ok) {
             throw new Error('Profile not found');
         }
-        
+
         const data = await response.json();
         data._timestamp = Date.now();
         accountCache[username] = data;
-        
+
         renderAccountProfile(data);
     } catch (error) {
         const content = document.getElementById('account-content');
@@ -488,18 +488,18 @@ async function fetchAccountProfile(username) {
 
 function renderAccountProfile(data) {
     const content = document.getElementById('account-content');
-    
+
     const joinedDate = new Date(data.created).toLocaleDateString('en-US', {
         year: 'numeric',
         month: 'long',
         day: 'numeric'
     });
-    
+
     let bannerHtml = '';
     if (data.banner) {
         bannerHtml = `<img src="${data.banner}" alt="Banner">`;
     }
-    
+
     const statusFromClass = getUserStatusInServer(data.username);
     const avatarSrc = data.pfp;
     const isCurrentUser = state.currentUser && state.currentUser.username === data.username;
@@ -610,23 +610,23 @@ function escapeHtml(text) {
 
 function isEmojiOnly(content) {
     if (!content || content.trim().length === 0) return false;
-    
+
     const trimmed = content.trim();
-    
-    
-    
+
+
+
     if (trimmed.length > 23) return false;
-    
-    
+
+
     const emojiRegex = /\p{Extended_Pictographic}/gu;
     const emojis = trimmed.match(emojiRegex) || [];
     const nonEmojiChars = trimmed.replace(emojiRegex, '').replace(/\s/g, '');
-    
-    
+
+
     if (nonEmojiChars.length === 0 && emojis.length > 0) {
         return true;
     }
-    
+
     return false;
 }
 
@@ -663,39 +663,39 @@ function closeServerDropdown() {
 function reorderServers(draggedUrl, targetUrl) {
     const draggedIndex = state.servers.findIndex(s => s.url === draggedUrl);
     const targetIndex = state.servers.findIndex(s => s.url === targetUrl);
-    
+
     if (draggedIndex === -1 || targetIndex === -1) return;
-    
-    
+
+
     const [draggedServer] = state.servers.splice(draggedIndex, 1);
-    
-    
+
+
     state.servers.splice(targetIndex, 0, draggedServer);
-    
-    
+
+
     localStorage.setItem('originchats_servers', JSON.stringify(state.servers));
-    
-    
+
+
     renderGuildSidebar();
 }
 
 function renderGuildSidebar() {
     const guildList = document.getElementById('guild-list');
-    
-    
+
+
     const homeGuild = guildList.querySelector('.home-guild');
     const divider = guildList.querySelector('.guild-divider');
     guildList.innerHTML = '';
-    
+
     if (homeGuild) {
-        
+
         homeGuild.classList.toggle('active', state.serverUrl === 'dms.mistium.com');
-        
-        
+
+
         const homeIcon = homeGuild.querySelector('.guild-icon');
         const dmConn = wsConnections['dms.mistium.com'];
         const existingWarning = homeGuild.querySelector('.guild-warning');
-        
+
         if (dmConn && dmConn.status === 'error') {
             homeGuild.classList.add('server-error');
             if (!existingWarning) {
@@ -722,8 +722,8 @@ function renderGuildSidebar() {
                 existingWarning.remove();
             }
         }
-        
-        
+
+
         const homePill = homeGuild.querySelector('.guild-pill');
         if (homePill) {
             if (state.unreadCountsByServer['dms.mistium.com'] > 0) {
@@ -733,7 +733,7 @@ function renderGuildSidebar() {
             }
         }
 
-        
+
         const existingPing = homeGuild.querySelector('.guild-ping');
         if (state.serverPingsByServer['dms.mistium.com'] > 0) {
             if (!existingPing) {
@@ -749,21 +749,21 @@ function renderGuildSidebar() {
 
         guildList.appendChild(homeGuild);
     }
-    
+
     if (state.dmServers && state.dmServers.length > 0) {
         state.dmServers.forEach(dmServer => {
             const item = document.createElement('div');
             item.className = 'guild-item dm-server';
             item.dataset.channel = dmServer.channel;
             item.title = dmServer.name;
-            
+
             if (state.serverUrl === 'dms.mistium.com' && state.currentChannel?.name === dmServer.channel) {
                 item.classList.add('active');
             }
-            
+
             const icon = document.createElement('div');
             icon.className = 'guild-icon';
-            
+
             const img = document.createElement('img');
             img.src = `https://avatars.rotur.dev/${dmServer.username}`;
             img.alt = dmServer.name;
@@ -771,27 +771,27 @@ function renderGuildSidebar() {
             img.style.height = '100%';
             img.style.objectFit = 'cover';
             icon.appendChild(img);
-            
+
             const pill = document.createElement('div');
             pill.className = 'guild-pill';
-            
+
             const channelKey = `dms.mistium.com:${dmServer.channel}`;
             if (state.unreadByChannel[channelKey] > 0) {
                 pill.classList.add('unread');
             }
-            
+
             item.appendChild(icon);
             item.appendChild(pill);
-            
+
             item.onclick = () => {
                 state.dmServers = state.dmServers.filter(dm => dm.channel !== dmServer.channel);
                 localStorage.setItem('originchats_dm_servers', JSON.stringify(state.dmServers));
                 renderGuildSidebar();
-                
+
                 if (state.serverUrl !== 'dms.mistium.com') {
                     switchServer('dms.mistium.com');
                 }
-                
+
                 setTimeout(() => {
                     const channels = state.channelsByServer['dms.mistium.com'] || [];
                     const channel = channels.find(c => c.name === dmServer.channel);
@@ -816,25 +816,25 @@ function renderGuildSidebar() {
                     }
                 }, 100);
             };
-            
+
             item.addEventListener('contextmenu', (e) => {
                 e.preventDefault();
                 showDMContextMenu(e, dmServer);
             });
-            
+
             guildList.appendChild(item);
         });
-        
+
         const dmDivider = document.createElement('div');
         dmDivider.className = 'guild-divider';
         dmDivider.style.margin = '4px 0';
         dmDivider.style.height = '1px';
         guildList.appendChild(dmDivider);
     }
-    
+
     if (divider) guildList.appendChild(divider);
-    
-        
+
+
     state.servers.forEach((server, index) => {
         const item = document.createElement('div');
         item.className = 'guild-item';
@@ -844,17 +844,17 @@ function renderGuildSidebar() {
         item.dataset.url = server.url;
         item.dataset.index = index;
         item.draggable = true;
-        
+
         const icon = document.createElement('div');
         icon.className = 'guild-icon';
-        
+
         if (server.icon) {
             const img = document.createElement('img');
             img.src = server.icon;
             img.alt = server.name;
             icon.appendChild(img);
         } else {
-            
+
             const initials = document.createElement('span');
             initials.textContent = server.name.substring(0, 2).toUpperCase();
             initials.style.fontWeight = '600';
@@ -862,7 +862,7 @@ function renderGuildSidebar() {
             initials.style.color = '#fff';
             icon.appendChild(initials);
         }
-        
+
         const conn = wsConnections[server.url];
         if (conn && conn.status === 'error') {
             item.classList.add('server-error');
@@ -894,7 +894,7 @@ function renderGuildSidebar() {
         const pill = document.createElement('div');
         pill.className = 'guild-pill';
 
-        
+
         if (state.unreadCountsByServer[server.url] > 0) {
             pill.classList.add('unread');
         }
@@ -902,7 +902,7 @@ function renderGuildSidebar() {
         item.appendChild(icon);
         item.appendChild(pill);
 
-        
+
         if (state.serverPingsByServer[server.url] > 0) {
             const pingIcon = document.createElement('div');
             pingIcon.className = 'guild-ping';
@@ -910,62 +910,62 @@ function renderGuildSidebar() {
             icon.style.position = 'relative';
             item.appendChild(pingIcon);
         }
-        
-        
+
+
         item.addEventListener('dragstart', (e) => {
             item.classList.add('dragging');
             e.dataTransfer.setData('text/plain', server.url);
             e.dataTransfer.effectAllowed = 'move';
         });
-        
+
         item.addEventListener('dragend', () => {
             item.classList.remove('dragging');
             document.querySelectorAll('.guild-item.drag-over').forEach(el => {
                 el.classList.remove('drag-over');
             });
         });
-        
+
         item.addEventListener('dragover', (e) => {
             e.preventDefault();
             e.dataTransfer.dropEffect = 'move';
             item.classList.add('drag-over');
         });
-        
+
         item.addEventListener('dragleave', (e) => {
-            
+
             if (!item.contains(e.relatedTarget)) {
                 item.classList.remove('drag-over');
             }
         });
-        
+
         item.addEventListener('drop', (e) => {
             e.preventDefault();
             const draggedUrl = e.dataTransfer.getData('text/plain');
             const targetUrl = server.url;
-            
+
             if (draggedUrl !== targetUrl) {
                 reorderServers(draggedUrl, targetUrl);
             }
-            
+
             item.classList.remove('drag-over');
         });
-        
+
         item.onclick = (e) => {
-            
+
             if (e.detail !== 0 && !e.type.includes('drag')) {
                 switchServer(server.url);
             }
         };
-        
-        
+
+
         item.addEventListener('contextmenu', (e) => {
             e.preventDefault();
             showGuildContextMenu(e, server);
         });
-        
+
         guildList.appendChild(item);
     });
-    
+
     if (window.lucide) window.lucide.createIcons({ root: guildList });
 }
 
@@ -1005,8 +1005,8 @@ function leaveServer(url) {
     if (confirm('Leave this server?')) {
         state.servers = state.servers.filter(s => s.url !== url);
         localStorage.setItem('originchats_servers', JSON.stringify(state.servers));
-        
-        
+
+
         if (wsConnections[url]) {
             wsConnections[url].socket.onclose = null;
             wsConnections[url].socket.onerror = null;
@@ -1016,19 +1016,19 @@ function leaveServer(url) {
             delete wsConnections[url];
             delete wsStatus[url];
         }
-        
-        
+
+
         delete state.channelsByServer[url];
         delete state.messagesByServer[url];
         delete state.pingsByServer[url];
         delete state.usersByServer[url];
         delete state.currentUserByServer[url];
-        
+
         if (state.serverUrl === url) {
             if (state.servers.length > 0) {
                 switchServer(state.servers[0].url);
             } else {
-                
+
                 Object.keys(wsConnections).forEach(key => {
                     wsConnections[key].socket.onclose = null;
                     wsConnections[key].socket.onerror = null;
@@ -1042,13 +1042,13 @@ function leaveServer(url) {
                 });
             }
         }
-        
+
         renderGuildSidebar();
     }
 }
 
 function renderServerDropdown() {
-    
+
     renderGuildSidebar();
 }
 
@@ -1074,36 +1074,36 @@ async function loadDiscoveryServers() {
     const loadingEl = document.getElementById('discovery-loading');
     const errorEl = document.getElementById('discovery-error');
     const listEl = document.getElementById('discovery-list');
-    
+
     loadingEl.style.display = 'flex';
     errorEl.style.display = 'none';
     listEl.innerHTML = '';
-    
+
     try {
         const response = await fetch('discovery.json');
         if (!response.ok) {
             throw new Error('Failed to load discovery.json');
         }
-        
+
         const servers = await response.json();
-        
+
         loadingEl.style.display = 'none';
-        
+
         if (servers.length === 0) {
             listEl.innerHTML = '<p class="discovery-empty">No servers found</p>';
             return;
         }
-        
+
         servers.forEach(server => {
             const isJoined = state.servers.some(s => s.url === server.url);
             const age = calculateServerAge(server.created_at);
-            
+
             const card = document.createElement('div');
             card.className = 'discovery-card';
-            
+
             const iconDiv = document.createElement('div');
             iconDiv.className = 'discovery-icon';
-            
+
             if (server.icon) {
                 const img = document.createElement('img');
                 img.src = server.icon;
@@ -1114,10 +1114,10 @@ async function loadDiscoveryServers() {
                 initials.textContent = server.name.substring(0, 2).toUpperCase();
                 iconDiv.appendChild(initials);
             }
-            
+
             const infoDiv = document.createElement('div');
             infoDiv.className = 'discovery-info';
-            
+
             infoDiv.innerHTML = `
                 <h3>${escapeHtml(server.name)}</h3>
                 <div class="discovery-meta">
@@ -1125,30 +1125,30 @@ async function loadDiscoveryServers() {
                     <span><i data-lucide="clock"></i> ${age}</span>
                 </div>
             `;
-            
+
             const actionDiv = document.createElement('div');
             actionDiv.className = 'discovery-actions';
-            
+
             const joinBtn = document.createElement('button');
             joinBtn.className = isJoined ? 'btn btn-secondary' : 'btn btn-primary';
             joinBtn.disabled = isJoined;
             joinBtn.innerHTML = isJoined ? '<i data-lucide="check"></i> Joined' : '<i data-lucide="plus"></i> Join';
-            
+
             if (!isJoined) {
                 joinBtn.onclick = () => joinDiscoveryServer(server);
             }
-            
+
             actionDiv.appendChild(joinBtn);
-            
+
             card.appendChild(iconDiv);
             card.appendChild(infoDiv);
             card.appendChild(actionDiv);
-            
+
             listEl.appendChild(card);
         });
-        
+
         if (window.lucide) window.lucide.createIcons({ root: listEl });
-        
+
     } catch (error) {
         console.error('Failed to load discovery servers:', error);
         loadingEl.style.display = 'none';
@@ -1158,13 +1158,13 @@ async function loadDiscoveryServers() {
 
 function calculateServerAge(createdTimestamp) {
     if (!createdTimestamp) return 'Unknown';
-    
+
     const now = Date.now();
     const diffMs = now - createdTimestamp;
     const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
     const diffMonths = Math.floor(diffDays / 30);
     const diffYears = Math.floor(diffDays / 365);
-    
+
     if (diffYears > 0) {
         return `${diffYears} year${diffYears > 1 ? 's' : ''} ago`;
     } else if (diffMonths > 0) {
@@ -1178,33 +1178,33 @@ function calculateServerAge(createdTimestamp) {
 
 async function joinDiscoveryServer(server) {
     try {
-        
+
         state.servers.push({
             name: server.name,
             url: server.url,
             icon: server.icon || null
         });
-        
-        
+
+
         state.unreadCountsByServer[server.url] = 0;
-        
-        
+
+
         localStorage.setItem('originchats_servers', JSON.stringify(state.servers));
-        
-        
+
+
         if (!wsConnections[server.url]) {
             connectToServer(server.url);
         }
-        
-        
+
+
         renderGuildSidebar();
-        
-        
+
+
         switchServer(server.url);
-        
-        
+
+
         closeDiscoveryModal();
-        
+
     } catch (error) {
         console.error('Failed to join server:', error);
         showError('Failed to join server. Please try again.');
@@ -1212,67 +1212,67 @@ async function joinDiscoveryServer(server) {
 }
 
 function switchServer(url) {
-    
+
     if (state.currentChannel) {
         state.lastChannelByServer[state.serverUrl] = state.currentChannel.name;
         localStorage.setItem('originchats_last_channels', JSON.stringify(state.lastChannelByServer));
     }
-    
+
     state.serverUrl = url;
     localStorage.setItem('serverUrl', url);
 
-    
+
     state.unreadCountsByServer[url] = 0;
 
-    
+
     if (state.serverPingsByServer[url]) {
         state.serverPingsByServer[url] = 0;
     }
-    
-    
+
+
     renderGuildSidebar();
-    
+
     state.currentChannel = null;
-    
-    
+
+
     if (!wsConnections[url] || wsConnections[url].status !== 'connected') {
         connectToServer(url);
     }
-    
-    
+
+
     const server = state.servers.find(s => s.url === url);
     const serverName = server ? server.name : (url === 'dms.mistium.com' ? 'Direct Messages' : url);
     document.getElementById('server-name').innerHTML = `<span>${serverName}</span>`;
-    
-    
+
+
     renderChannels();
-    
-    
+
+
     const channels = state.channels;
     if (channels.length > 0) {
         const lastChannelName = state.lastChannelByServer[url];
         const lastChannel = lastChannelName ? channels.find(c => c.name === lastChannelName) : null;
         selectChannel(lastChannel || channels[0]);
     } else {
-        
+
         document.getElementById('channel-name').textContent = '';
         document.getElementById('messages').innerHTML = '';
     }
-    
-    
+
+
     renderMembers(state.currentChannel);
 }
 
 function saveServer(server) {
-    
+
     const isDM = server.url === 'dms.mistium.com';
     if (isDM) return;
-    
-    
+
+
     if (!state.unreadCountsByServer[server.url]) {
         state.unreadCountsByServer[server.url] = 0;
     }
-    
+
     const existing = state.servers.find(s => s.url === server.url);
     if (!existing) {
         state.servers.push(server);
@@ -1280,30 +1280,30 @@ function saveServer(server) {
         Object.assign(existing, server);
     }
     localStorage.setItem('originchats_servers', JSON.stringify(state.servers));
-    
-    
+
+
     renderGuildSidebar();
 }
 
 function connectToServer(serverUrl) {
     const url = serverUrl || state.serverUrl;
-    
+
     if (reconnectTimeouts[url]) {
         clearTimeout(reconnectTimeouts[url]);
         reconnectTimeouts[url] = null;
     }
     reconnectAttempts[url] = 0;
-    
+
     const isFirstConnection = !Object.values(wsConnections).some(conn => conn && conn.status === 'connected');
     const authScreen = document.getElementById('auth-screen');
     const isAuthScreenVisible = authScreen && authScreen.classList.contains('active');
-    
+
     if (isFirstConnection || isAuthScreenVisible) {
         if (authScreen) authScreen.classList.remove('active');
         const chatScreen = document.getElementById('chat-screen');
         if (chatScreen) chatScreen.classList.add('active');
     }
-    
+
     if (wsConnections[url]) {
         console.warn(`Closing existing connection to ${url} before reconnecting`);
         wsConnections[url].socket.onclose = null;
@@ -1313,11 +1313,11 @@ function connectToServer(serverUrl) {
         }
         wsConnections[url] = null;
     }
-    
+
     wsStatus[url] = 'connecting';
-    
+
     const ws = new WebSocket(`wss://${url}`);
-    
+
     wsConnections[url] = {
         socket: ws,
         status: 'connecting'
@@ -1328,7 +1328,7 @@ function connectToServer(serverUrl) {
         wsConnections[url].status = 'connected';
         wsStatus[url] = 'connected';
         renderGuildSidebar();
-        
+
         if (reconnectAttempts[url]) {
             reconnectAttempts[url] = 0;
         }
@@ -1354,7 +1354,7 @@ function connectToServer(serverUrl) {
         wsConnections[url].status = 'error';
         wsStatus[url] = 'error';
         renderGuildSidebar();
-        
+
         if (url === state.serverUrl) {
             console.log(`Auto-reconnecting to ${url}...`);
             scheduleReconnect(url);
@@ -1364,18 +1364,18 @@ function connectToServer(serverUrl) {
 
 function connectToAllServers() {
     let firstConnection = !state.serverUrl || Object.keys(wsConnections).length === 0;
-    
-    
+
+
     state.servers.forEach(server => {
         connectToServer(server.url);
     });
-    
-    
+
+
     if (!wsConnections['dms.mistium.com']) {
         connectToServer('dms.mistium.com');
     }
-    
-    
+
+
     if (state.serverUrl && !wsConnections[state.serverUrl]) {
         connectToServer(state.serverUrl);
     }
@@ -1390,28 +1390,28 @@ function scheduleReconnect(serverUrl) {
     if (reconnectTimeouts[serverUrl]) {
         clearTimeout(reconnectTimeouts[serverUrl]);
     }
-    
+
     if (!reconnectAttempts[serverUrl]) {
         reconnectAttempts[serverUrl] = 0;
     }
-    
+
     reconnectAttempts[serverUrl]++;
-    
+
     if (reconnectAttempts[serverUrl] > MAX_RECONNECT_ATTEMPTS) {
         console.error(`Max reconnection attempts reached for ${serverUrl}`);
         showError(`Failed to reconnect to ${serverUrl}. Click the server to retry.`);
         reconnectAttempts[serverUrl] = 0;
         return;
     }
-    
+
     const delay = Math.min(INITIAL_RECONNECT_DELAY * Math.pow(2, reconnectAttempts[serverUrl] - 1), 30000);
-    
+
     console.log(`Scheduling reconnect to ${serverUrl} in ${delay}ms (attempt ${reconnectAttempts[serverUrl]}/${MAX_RECONNECT_ATTEMPTS})`);
-    
+
     reconnectTimeouts[serverUrl] = setTimeout(() => {
         reconnectTimeouts[serverUrl] = null;
-        
-        if (serverUrl === state.serverUrl && 
+
+        if (serverUrl === state.serverUrl &&
             (!wsConnections[serverUrl] || wsConnections[serverUrl].status !== 'connected')) {
             connectToServer(serverUrl);
         } else {
@@ -1458,7 +1458,7 @@ async function authenticateServer(serverUrl) {
     try {
         const validator = await generateValidator(validatorKey);
         state.validatorsByServer[serverUrl] = validator;
-        
+
         if (conn.socket.readyState === WebSocket.OPEN) {
             wsSend({ cmd: 'auth', validator: validator }, serverUrl);
         } else {
@@ -1472,28 +1472,28 @@ async function authenticateServer(serverUrl) {
         }
     } catch (error) {
         console.error(`Authentication failed for ${serverUrl}:`, error);
-        
+
     }
 }
 
 async function retryAuthentication(serverUrl) {
     const maxRetries = 3;
-    
+
     if (!authRetries[serverUrl]) {
         authRetries[serverUrl] = 0;
     }
-    
+
     authRetries[serverUrl]++;
-    
+
     if (authRetries[serverUrl] >= maxRetries) {
         console.error(`Max authentication retries reached for ${serverUrl}`);
-        
+
         if (wsConnections[serverUrl]) {
             wsConnections[serverUrl].status = 'error';
             wsStatus[serverUrl] = 'error';
         }
         renderGuildSidebar();
-        
+
         if (state.serverUrl === serverUrl) {
             showError('Authentication failed. Reconnecting...');
             if (wsConnections[serverUrl]) {
@@ -1506,12 +1506,12 @@ async function retryAuthentication(serverUrl) {
         }
         return;
     }
-    
+
     console.log(`Retrying authentication for ${serverUrl} (attempt ${authRetries[serverUrl]}/${maxRetries})`);
-    
-    
+
+
     await new Promise(resolve => setTimeout(resolve, 1000 * authRetries[serverUrl]));
-    
+
     await authenticateServer(serverUrl);
 }
 
@@ -1532,34 +1532,34 @@ async function handleMessage(msg, serverUrl) {
             if (!state.usersByServer[serverUrl]) {
                 state.usersByServer[serverUrl] = {};
             }
-            
+
             state.server = msg.val.server;
             state.server.url = serverUrl;
-            
-            
+
+
             const isDM = serverUrl === 'dms.mistium.com';
             if (isDM) {
                 state.server.name = 'Direct Messages';
             }
-            
-            
+
+
             authRetries[serverUrl] = 0;
-            
-            
+
+
             serverValidatorKeys[serverUrl] = msg.val.validator_key;
-            
+
             saveServer(state.server);
 
-            
+
             document.getElementById('server-name').innerHTML = `<span>${state.server.name}</span>`;
-            
-            
+
+
             renderGuildSidebar();
-            
-            
+
+
             updateGuildActiveState();
 
-            
+
             authenticateServer(serverUrl);
             break;
         case 'ready':
@@ -1574,7 +1574,7 @@ async function handleMessage(msg, serverUrl) {
                 state.usersByServer[serverUrl][msg.user.username] = msg.user;
             }
             updateUserSection();
-            
+
             authRetries[serverUrl] = 0;
             break
 
@@ -1669,7 +1669,7 @@ async function handleMessage(msg, serverUrl) {
                         }
                         container.insertBefore(frag, container.firstChild);
 
-                        
+
                         const merged = [...msg.messages, ...existing];
                         const seen = new Set();
                         state.messagesByServer[serverUrl][ch] = merged.filter(m => {
@@ -1678,7 +1678,7 @@ async function handleMessage(msg, serverUrl) {
                             return true;
                         });
 
-                        
+
                         const newScrollHeight = container.scrollHeight;
                         const delta = newScrollHeight - oldScrollHeight;
                         const prevBehavior = container.style.scrollBehavior;
@@ -1686,7 +1686,7 @@ async function handleMessage(msg, serverUrl) {
                         container.scrollTop = oldScrollTop + delta;
                         container.style.scrollBehavior = prevBehavior || '';
                     } else {
-                        
+
                         const merged = [...msg.messages, ...existing];
                         const seen = new Set();
                         state.messagesByServer[serverUrl][ch] = merged.filter(m => {
@@ -1713,25 +1713,25 @@ async function handleMessage(msg, serverUrl) {
             }
             state.messagesByServer[serverUrl][msg.channel].push(msg.message);
 
-            
+
             if (state.serverUrl !== serverUrl || msg.channel !== state.currentChannel?.name) {
                 if (!state.unreadCountsByServer[serverUrl]) {
                     state.unreadCountsByServer[serverUrl] = 0;
                 }
                 state.unreadCountsByServer[serverUrl]++;
-                
+
                 const channelKey = `${serverUrl}:${msg.channel}`;
                 if (!state.unreadByChannel[channelKey]) {
                     state.unreadByChannel[channelKey] = 0;
                 }
                 state.unreadByChannel[channelKey]++;
-                
+
                 console.log(`New unread message: ${channelKey}, count: ${state.unreadByChannel[channelKey]}`);
-                
+
                 if (serverUrl === 'dms.mistium.com' && msg.message.user !== state.currentUser?.username) {
                     addDMServer(msg.message.user, msg.channel);
                 }
-                
+
                 // Always re-render channels if it's the current server
                 if (state.serverUrl === serverUrl) {
                     requestAnimationFrame(() => renderChannels());
@@ -1887,7 +1887,7 @@ async function handleMessage(msg, serverUrl) {
             break;
         case 'auth_error':
             console.error(`Authentication error for ${serverUrl}:`, msg.val);
-            
+
             retryAuthentication(serverUrl);
             break;
         case 'message_react_add': {
@@ -2011,7 +2011,7 @@ function updateChannelListTyping(channelName) {
 function renderChannels() {
     const container = document.getElementById('channels-list');
     if (!container) return;
-    
+
     console.log('renderChannels called, unreadByChannel:', state.unreadByChannel);
     container.innerHTML = '';
 
@@ -2038,11 +2038,11 @@ function renderChannels() {
             const name = document.createElement('span');
             name.textContent = getChannelDisplayName(channel);
             name.dataset.channelName = channel.name;
-            
+
             const channelKey = `${state.serverUrl}:${channel.name}`;
             const hasUnread = state.unreadByChannel[channelKey] > 0;
             const hasPings = state.unreadPings[channel.name] > 0;
-            
+
             if (hasUnread || hasPings) {
                 if (hasUnread) {
                     console.log(`Channel ${channel.name} has ${state.unreadByChannel[channelKey]} unread messages`);
@@ -2050,9 +2050,9 @@ function renderChannels() {
                 name.style.fontWeight = '600';
                 name.style.color = 'var(--text)';
             }
-            
+
             div.appendChild(name);
-            
+
             if (hasPings) {
                 const badge = document.createElement('span');
                 badge.className = 'ping-badge';
@@ -2121,17 +2121,17 @@ function selectChannel(channel) {
     if (state.unreadPings[channel.name]) {
         delete state.unreadPings[channel.name];
     }
-    
+
     // Clear unread count for this channel
     const channelKey = `${state.serverUrl}:${channel.name}`;
     if (state.unreadByChannel[channelKey]) {
-        state.unreadCountsByServer[state.serverUrl] = Math.max(0, 
+        state.unreadCountsByServer[state.serverUrl] = Math.max(0,
             (state.unreadCountsByServer[state.serverUrl] || 0) - state.unreadByChannel[channelKey]
         );
         delete state.unreadByChannel[channelKey];
         renderGuildSidebar();
     }
-    
+
     renderChannels();
 
     document.querySelectorAll('.channel-item').forEach(el => el.classList.remove('active'));
@@ -2157,8 +2157,8 @@ function formatTimestamp(unix) {
     const diffMins = Math.floor(diffMs / 60000);
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
-    
-    
+
+
     if (diffMins < 1) {
         return 'Just now';
     } else if (diffMins < 60) {
@@ -2166,40 +2166,40 @@ function formatTimestamp(unix) {
     } else if (diffHours < 24 && diffDays < 1) {
         return `${diffHours}h ago`;
     }
-    
-    
+
+
     const isToday = messageDate.toDateString() === now.toDateString();
     if (isToday) {
         const time = messageDate.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
         return `Today at ${time}`;
     }
-    
-    
+
+
     const yesterday = new Date(now);
     yesterday.setDate(yesterday.getDate() - 1);
     if (messageDate.toDateString() === yesterday.toDateString()) {
         const time = messageDate.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
         return `Yesterday at ${time}`;
     }
-    
-    
+
+
     if (diffDays < 7) {
         const dayName = messageDate.toLocaleDateString('en-US', { weekday: 'long' });
         const time = messageDate.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
         return `${dayName} at ${time}`;
     }
-    
-    
+
+
     const day = messageDate.getDate();
     const suffix =
         day % 10 === 1 && day !== 11 ? 'st' :
             day % 10 === 2 && day !== 12 ? 'nd' :
                 day % 10 === 3 && day !== 13 ? 'rd' : 'th';
-    
+
     const month = messageDate.toLocaleString('en-US', { month: 'short' });
     const year = messageDate.getFullYear();
     const time = messageDate.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-    
+
     return `${month} ${day}${suffix}, ${year} ${time}`;
 }
 
@@ -2210,11 +2210,11 @@ function getFullTimestamp(unix) {
         day % 10 === 1 && day !== 11 ? 'st' :
             day % 10 === 2 && day !== 12 ? 'nd' :
                 day % 10 === 3 && day !== 13 ? 'rd' : 'th';
-    
+
     const month = d.toLocaleString('en-US', { month: 'long' });
     const year = d.getFullYear();
     const time = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    
+
     return `${day}${suffix} ${month} ${year} at ${time}`;
 }
 
@@ -2309,7 +2309,7 @@ async function renderMessages(scrollToBottom = true) {
                 if (!state._olderLoading && nearBottom()) scrollBottom();
             });
             observer.observe(container, { childList: true, subtree: true });
-        } catch {}
+        } catch { }
         const imgs = container.querySelectorAll('img');
         imgs.forEach(img => {
             if (!img.complete) {
@@ -2323,7 +2323,7 @@ async function renderMessages(scrollToBottom = true) {
     updateTypingIndicator();
 }
 
- 
+
 
 function appendMessage(msg) {
     const container = document.getElementById("messages");
@@ -2374,8 +2374,8 @@ function updateMessageContent(msgId, newContent) {
         msgText.style.display = 'none';
     } else {
         msgText.style.display = '';
-        
-        
+
+
         if (isEmojiOnly(msg.content)) {
             msgText.classList.add('emoji-only');
         } else {
@@ -2467,11 +2467,11 @@ function updateMessageContent(msgId, newContent) {
             editedIndicator.remove();
         }
     }
-    
+
     // Re-attach context menu listener
     msgText.addEventListener('contextmenu', (e) => {
         e.preventDefault();
-        
+
         // Check if right-clicked on a link
         const link = e.target.closest('a[href]');
         if (link && link.href && !link.href.startsWith('javascript:')) {
@@ -2663,14 +2663,14 @@ function makeMessageElement(msg, isSameUserRecent, loadPromises = []) {
         msgText.style.display = 'none';
     } else {
         msgText.style.display = '';
-        
-        
+
+
         if (isEmojiOnly(msg.content)) {
             msgText.classList.add('emoji-only');
         }
     }
-    
-    
+
+
     if (!isHead) {
         const hoverTs = document.createElement('div');
         hoverTs.className = 'hover-timestamp';
@@ -2772,7 +2772,7 @@ function makeMessageElement(msg, isSameUserRecent, loadPromises = []) {
 
     msgText.addEventListener('contextmenu', (e) => {
         e.preventDefault();
-        
+
         // Check if right-clicked on a link
         const link = e.target.closest('a[href]');
         if (link && link.href && !link.href.startsWith('javascript:')) {
@@ -2914,15 +2914,15 @@ function revealBlockedMessage(wrapper, msg) {
                 link.onclick = (e) => { e.preventDefault(); if (window.openImageModal) window.openImageModal(url); };
                 link.classList.remove('potential-image');
             }
-        }).catch(() => {});
+        }).catch(() => { });
     });
 
     renderReactions(msg, groupContent);
-    
+
     // Add context menu listener for blocked message content
     msgText.addEventListener('contextmenu', (e) => {
         e.preventDefault();
-        
+
         // Check if right-clicked on a link
         const link = e.target.closest('a[href]');
         if (link && link.href && !link.href.startsWith('javascript:')) {
@@ -2996,9 +2996,9 @@ function openMessageContextMenu(event, msg) {
 
 function openLinkContextMenu(event, url) {
     closeContextMenu();
-    
+
     contextMenu.innerHTML = "";
-    
+
     const addItem = (label, callback) => {
         const el = document.createElement("div");
         el.className = "context-menu-item";
@@ -3010,7 +3010,7 @@ function openLinkContextMenu(event, url) {
         };
         contextMenu.appendChild(el);
     };
-    
+
     addItem("Copy URL", () => {
         navigator.clipboard.writeText(url).then(() => {
             console.log('URL copied to clipboard:', url);
@@ -3031,28 +3031,28 @@ function openLinkContextMenu(event, url) {
             document.body.removeChild(textArea);
         });
     });
-    
+
     addItem("Open in new tab", () => {
         window.open(url, '_blank', 'noopener,noreferrer');
     });
-    
+
     if (!isMobile()) {
         const menuWidth = 180;
         const menuHeight = 80;
-        
+
         let x = event.clientX;
         let y = event.clientY;
-        
+
         if (x + menuWidth > window.innerWidth)
             x = window.innerWidth - menuWidth - 6;
         if (y + menuHeight > window.innerHeight)
             y = window.innerHeight - menuHeight - 6;
-        
+
         contextMenu.style.left = x + "px";
         contextMenu.style.top = y + "px";
     }
     contextMenu.style.display = "block";
-    
+
     contextMenuOpen = true;
 }
 
@@ -3093,14 +3093,14 @@ function renderMembers(channel) {
     let onlineSec = container.querySelector('.section-online');
     let offlineSec = container.querySelector('.section-offline');
 
-    const owners = users.filter(u => u.roles && u.roles.includes('owner')).sort((a, b) => 
+    const owners = users.filter(u => u.roles && u.roles.includes('owner')).sort((a, b) =>
         a.username.localeCompare(b.username, undefined, { sensitivity: 'base' })
     );
     const nonOwners = users.filter(u => !u.roles || !u.roles.includes('owner'));
-    const online = nonOwners.filter(u => u.status === 'online').sort((a, b) => 
+    const online = nonOwners.filter(u => u.status === 'online').sort((a, b) =>
         a.username.localeCompare(b.username, undefined, { sensitivity: 'base' })
     );
-    const offline = nonOwners.filter(u => u.status !== 'online').sort((a, b) => 
+    const offline = nonOwners.filter(u => u.status !== 'online').sort((a, b) =>
         a.username.localeCompare(b.username, undefined, { sensitivity: 'base' })
     );
 
@@ -3192,7 +3192,7 @@ function replaceShortcodesWithEmojis(text) {
 
 function sendMessage() {
     closeMentionPopup();
-    
+
     const input = document.getElementById('message-input');
     let content = input.value.trim();
     content = replaceShortcodesWithEmojis(content);
@@ -3356,7 +3356,7 @@ function handleMentionInput() {
 
 function filterUsers(query) {
     const users = Object.values(state.users);
-    
+
     if (query === '') {
         mentionState.filteredUsers = users.sort((a, b) => {
             const aOnline = a.status === 'online' ? 0 : 1;
@@ -3371,37 +3371,37 @@ function filterUsers(query) {
                 const aExact = a.username.toLowerCase() === query ? 0 : 1;
                 const bExact = b.username.toLowerCase() === query ? 0 : 1;
                 if (aExact !== bExact) return aExact - bExact;
-                
+
                 const aOnline = a.status === 'online' ? 0 : 1;
                 const bOnline = b.status === 'online' ? 0 : 1;
                 if (aOnline !== bOnline) return aOnline - bOnline;
-                
+
                 return a.username.localeCompare(b.username);
             });
     }
-    
+
     renderMentionPopup();
 }
 
 function renderMentionPopup() {
     const popup = document.getElementById('mention-popup');
     const list = document.getElementById('mention-list');
-    
+
     if (mentionState.filteredUsers.length === 0) {
         closeMentionPopup();
         return;
     }
-    
+
     list.innerHTML = '';
-    
+
     const users = mentionState.filteredUsers.slice(0, 8);
-    
+
     users.forEach((user, index) => {
         const li = document.createElement('li');
         li.className = 'mention-item' + (index === mentionState.selectedIndex ? ' selected' : '');
         li.dataset.username = user.username;
         li.dataset.index = index;
-        
+
         li.innerHTML = `
             <img src="${getAvatarSrc(user.username)}" alt="${user.username}">
             <div class="mention-info">
@@ -3409,25 +3409,25 @@ function renderMentionPopup() {
                 <div class="mention-status">${user.status === 'online' ? 'Online' : 'Offline'}</div>
             </div>
         `;
-        
+
         li.addEventListener('click', (e) => {
             e.preventDefault();
             e.stopPropagation();
             selectMention(index);
         });
-        
+
         li.addEventListener('mouseenter', () => {
             mentionState.selectedIndex = index;
             updateMentionSelection();
         });
-        
+
         if (user.status === 'online') {
             li.classList.add('online');
         }
-        
+
         list.appendChild(li);
     });
-    
+
     popup.classList.add('active');
 }
 
@@ -3440,26 +3440,26 @@ function getAvatarSrc(username) {
 
 function handleMentionNavigation(e) {
     if (!mentionState.active) return false;
-    
+
     if (e.key === 'Escape') {
         closeMentionPopup();
         return true;
     }
-    
+
     if (e.key === 'ArrowDown') {
         e.preventDefault();
         mentionState.selectedIndex = Math.min(mentionState.selectedIndex + 1, mentionState.filteredUsers.length - 1);
         updateMentionSelection();
         return true;
     }
-    
+
     if (e.key === 'ArrowUp') {
         e.preventDefault();
         mentionState.selectedIndex = Math.max(mentionState.selectedIndex - 1, 0);
         updateMentionSelection();
         return true;
     }
-    
+
     if (e.key === 'Tab' || e.key === 'Enter') {
         if (mentionState.filteredUsers.length > 0) {
             e.preventDefault();
@@ -3467,7 +3467,7 @@ function handleMentionNavigation(e) {
             return true;
         }
     }
-    
+
     return false;
 }
 
@@ -3476,13 +3476,13 @@ function updateMentionSelection() {
     items.forEach((item, index) => {
         item.classList.toggle('selected', index === mentionState.selectedIndex);
     });
-    
+
     const selected = items[mentionState.selectedIndex];
     if (selected) {
         const popup = document.getElementById('mention-popup');
         const popupRect = popup.getBoundingClientRect();
         const itemRect = selected.getBoundingClientRect();
-        
+
         if (itemRect.bottom > popupRect.bottom) {
             popup.scrollTop += itemRect.bottom - popupRect.bottom + 10;
         } else if (itemRect.top < popupRect.top) {
@@ -3494,17 +3494,17 @@ function updateMentionSelection() {
 function selectMention(index) {
     const username = mentionState.filteredUsers[index].username;
     const input = document.getElementById('message-input');
-    
+
     const before = input.value.substring(0, mentionState.startIndex);
     const after = input.value.substring(input.selectionStart);
-    
+
     const mention = `@${username} `;
-    
+
     input.value = before + mention + after;
-    
+
     const newCursorPos = mentionState.startIndex + mention.length;
     input.setSelectionRange(newCursorPos, newCursorPos);
-    
+
     closeMentionPopup();
     input.focus();
 }
@@ -3515,7 +3515,7 @@ function closeMentionPopup() {
     mentionState.startIndex = 0;
     mentionState.selectedIndex = 0;
     mentionState.filteredUsers = [];
-    
+
     const popup = document.getElementById('mention-popup');
     const list = document.getElementById('mention-list');
     if (list && list.querySelector('.mention-item')) {
@@ -3536,18 +3536,18 @@ function handleChannelInput() {
     const input = document.getElementById('message-input');
     const cursorPos = input.selectionStart;
     const text = input.value;
-    
+
     const textBeforeCursor = text.substring(0, cursorPos);
     const words = textBeforeCursor.split(/\s/);
     const lastWord = words[words.length - 1] || '';
-    
+
     if (lastWord.startsWith('#')) {
         closeMentionPopup();
         channelState.active = true;
         channelState.query = lastWord.substring(1).toLowerCase();
         channelState.startIndex = cursorPos - lastWord.length;
         channelState.selectedIndex = 0;
-        
+
         filterChannels(channelState.query);
     } else {
         closeChannelPopup();
@@ -3556,7 +3556,7 @@ function handleChannelInput() {
 
 function filterChannels(query) {
     const channels = state.channels.filter(c => c.type === 'text');
-    
+
     if (query === '') {
         channelState.filteredChannels = channels.sort((a, b) => a.name.localeCompare(b.name));
     } else {
@@ -3564,77 +3564,77 @@ function filterChannels(query) {
             .filter(channel => getChannelDisplayName(channel).toLowerCase().includes(query))
             .sort((a, b) => a.name.localeCompare(b.name));
     }
-    
+
     renderChannelPopup();
 }
 
 function renderChannelPopup() {
     const popup = document.getElementById('mention-popup');
     const list = document.getElementById('mention-list');
-    
+
     if (channelState.filteredChannels.length === 0) {
         closeChannelPopup();
         return;
     }
-    
+
     list.innerHTML = '';
-    
+
     const channels = channelState.filteredChannels.slice(0, 8);
-    
+
     channels.forEach((channel, index) => {
         const li = document.createElement('li');
         li.className = 'channel-mention-item' + (index === channelState.selectedIndex ? ' selected' : '');
         li.dataset.channelName = channel.name;
         li.dataset.index = index;
-        
+
         const displayName = getChannelDisplayName(channel);
-        
+
         li.innerHTML = `
             <span class="channel-mention-hash">#</span>
             <div class="channel-mention-info">
                 <div class="channel-mention-name">${escapeHtml(displayName)}</div>
             </div>
         `;
-        
+
         li.addEventListener('click', (e) => {
             e.preventDefault();
             e.stopPropagation();
             selectChannelMention(index);
         });
-        
+
         li.addEventListener('mouseenter', () => {
             channelState.selectedIndex = index;
             updateChannelSelection();
         });
-        
+
         list.appendChild(li);
     });
-    
+
     popup.classList.add('active');
 }
 
 function handleChannelNavigation(e) {
     if (!channelState.active) return false;
-    
+
     if (e.key === 'Escape') {
         closeChannelPopup();
         return true;
     }
-    
+
     if (e.key === 'ArrowDown') {
         e.preventDefault();
         channelState.selectedIndex = Math.min(channelState.selectedIndex + 1, channelState.filteredChannels.length - 1);
         updateChannelSelection();
         return true;
     }
-    
+
     if (e.key === 'ArrowUp') {
         e.preventDefault();
         channelState.selectedIndex = Math.max(channelState.selectedIndex - 1, 0);
         updateChannelSelection();
         return true;
     }
-    
+
     if (e.key === 'Tab' || e.key === 'Enter') {
         if (channelState.filteredChannels.length > 0) {
             e.preventDefault();
@@ -3642,7 +3642,7 @@ function handleChannelNavigation(e) {
             return true;
         }
     }
-    
+
     return false;
 }
 
@@ -3651,13 +3651,13 @@ function updateChannelSelection() {
     items.forEach((item, index) => {
         item.classList.toggle('selected', index === channelState.selectedIndex);
     });
-    
+
     const selected = items[channelState.selectedIndex];
     if (selected) {
         const popup = document.getElementById('mention-popup');
         const popupRect = popup.getBoundingClientRect();
         const itemRect = selected.getBoundingClientRect();
-        
+
         if (itemRect.bottom > popupRect.bottom) {
             popup.scrollTop += itemRect.bottom - popupRect.bottom + 10;
         } else if (itemRect.top < popupRect.top) {
@@ -3670,17 +3670,17 @@ function selectChannelMention(index) {
     const channel = channelState.filteredChannels[index];
     const displayName = getChannelDisplayName(channel);
     const input = document.getElementById('message-input');
-    
+
     const before = input.value.substring(0, channelState.startIndex);
     const after = input.value.substring(input.selectionStart);
-    
+
     const mention = `#${displayName}`;
-    
+
     input.value = before + mention + after;
-    
+
     const newCursorPos = channelState.startIndex + mention.length;
     input.setSelectionRange(newCursorPos, newCursorPos);
-    
+
     closeChannelPopup();
     input.focus();
 }
@@ -3691,7 +3691,7 @@ function closeChannelPopup() {
     channelState.startIndex = 0;
     channelState.selectedIndex = 0;
     channelState.filteredChannels = [];
-    
+
     const popup = document.getElementById('mention-popup');
     const list = document.getElementById('mention-list');
     if (list && list.querySelector('.channel-mention-item')) {
@@ -3713,7 +3713,7 @@ document.addEventListener('click', (e) => {
         closeMentionPopup();
         closeChannelPopup();
     }
-    
+
     const channelMention = e.target.closest('.channel-mention');
     if (channelMention) {
         const channelName = channelMention.dataset.channel;
@@ -3724,7 +3724,7 @@ document.addEventListener('click', (e) => {
             e.stopPropagation();
         }
     }
-    
+
     const mention = e.target.closest('.mention');
     if (mention) {
         const username = mention.dataset.user;
@@ -3766,7 +3766,7 @@ function showError(message) {
         text.textContent = message;
         banner.classList.add('active');
         if (window.lucide) window.lucide.createIcons();
-        
+
         if (errorBannerTimer) {
             clearTimeout(errorBannerTimer);
         }
@@ -3832,7 +3832,7 @@ function addDMServer(username, channel) {
         state.dmServers.unshift(dm);
         return;
     }
-    
+
     // Add new DM server at the beginning
     state.dmServers.unshift({
         username: username,
@@ -3913,7 +3913,6 @@ function deleteServer(id) {
     }
 }
 
-// Server config modal functions
 let editingServerId = null;
 
 function openAddServerModal() {
@@ -3922,10 +3921,17 @@ function openAddServerModal() {
     document.getElementById('server-config-form').reset();
     document.getElementById('headers-list').innerHTML = '';
     document.getElementById('body-params-list').innerHTML = '';
+
+    const serverTypeSelect = document.querySelector('[name="serverType"]');
+    if (serverTypeSelect) {
+        serverTypeSelect.value = 'rotur';
+    }
+    updateServerTypeOptions();
+    updateAuthOptions();
+
     const modal = document.getElementById('server-config-modal');
     modal.style.display = 'flex';
     modal.classList.add('active');
-    updateAuthOptions();
     if (window.lucide) window.lucide.createIcons();
 }
 
@@ -3937,28 +3943,47 @@ function editServer(id) {
     document.getElementById('server-modal-title').textContent = 'Edit Media Server';
 
     const form = document.getElementById('server-config-form');
-    form.name.value = server.name || '';
-    form.uploadUrl.value = server.uploadUrl || '';
-    form.method.value = server.method || 'POST';
-    form.enabled.value = server.enabled ? 'true' : 'false';
-    form.fileParamName.value = server.fileParamName || '';
-    form.responseUrlPath.value = server.responseUrlPath || '';
-    form.urlTemplate.value = server.urlTemplate || '';
-    form.requiresAuth.value = server.requiresAuth ? 'true' : 'false';
-    form.authType.value = server.authType || 'session';
-    form.authParam.value = server.apiKey || '';
 
-    document.getElementById('headers-list').innerHTML = '';
-    if (server.headers) {
-        server.headers.forEach(h => addHeaderRow(h.key, h.value));
+    const isRoturServer = server.id === 'roturphotos' ||
+        (server.uploadUrl && server.uploadUrl.includes('/api/image/upload') &&
+            server.responseUrlPath === '$.path' &&
+            server.authType === 'session');
+
+    const serverTypeSelect = form.querySelector('[name="serverType"]');
+    if (serverTypeSelect) {
+        serverTypeSelect.value = isRoturServer ? 'rotur' : 'custom';
     }
 
-    document.getElementById('body-params-list').innerHTML = '';
-    if (server.bodyParams) {
-        server.bodyParams.forEach(p => addBodyParamRow(p.key, p.value));
+    if (isRoturServer) {
+        const baseUrl = server.urlTemplate ? server.urlTemplate.replace('/{id}', '') : 'https://photos.rotur.dev';
+        form.roturUrl.value = baseUrl;
+        form.roturName.value = server.name || 'roturPhotos';
+    } else {
+        form.name.value = server.name || '';
+        form.uploadUrl.value = server.uploadUrl || '';
+        form.method.value = server.method || 'POST';
+        form.enabled.value = server.enabled ? 'true' : 'false';
+        form.fileParamName.value = server.fileParamName || '';
+        form.responseUrlPath.value = server.responseUrlPath || '';
+        form.urlTemplate.value = server.urlTemplate || '';
+        form.requiresAuth.value = server.requiresAuth ? 'true' : 'false';
+        form.authType.value = server.authType || 'session';
+        form.authParam.value = server.apiKey || '';
+
+        document.getElementById('headers-list').innerHTML = '';
+        if (server.headers) {
+            server.headers.forEach(h => addHeaderRow(h.key, h.value));
+        }
+
+        document.getElementById('body-params-list').innerHTML = '';
+        if (server.bodyParams) {
+            server.bodyParams.forEach(p => addBodyParamRow(p.key, p.value));
+        }
     }
 
+    updateServerTypeOptions();
     updateAuthOptions();
+
     const modal = document.getElementById('server-config-modal');
     modal.style.display = 'flex';
     modal.classList.add('active');
@@ -3972,11 +3997,13 @@ function closeServerConfigModal() {
 }
 
 function updateAuthOptions() {
-    const requiresAuth = document.querySelector('[name="requiresAuth"]').value === 'true';
-    const authType = document.querySelector('[name="authType"]').value;
+    const requiresAuth = document.querySelector('[name="requiresAuth"]')?.value === 'true';
+    const authType = document.querySelector('[name="authType"]')?.value;
     const authOptions = document.getElementById('auth-options');
     const authParamGroup = document.getElementById('auth-param-group');
     const authParamLabel = document.getElementById('auth-param-label');
+
+    if (!authOptions) return;
 
     authOptions.style.display = requiresAuth ? 'block' : 'none';
 
@@ -3986,6 +4013,55 @@ function updateAuthOptions() {
     } else {
         authParamGroup.style.display = 'none';
     }
+}
+
+function updateServerTypeOptions() {
+    const serverType = document.querySelector('[name="serverType"]')?.value;
+    const roturFields = document.getElementById('rotur-server-fields');
+    const customFields = document.getElementById('custom-server-fields');
+
+    if (serverType === 'rotur') {
+        roturFields.style.display = 'block';
+        customFields.style.display = 'none';
+    } else {
+        roturFields.style.display = 'none';
+        customFields.style.display = 'block';
+    }
+}
+
+function cleanRoturUrl(url) {
+    if (!url) return 'https://photos.rotur.dev';
+
+    // Remove trailing slashes
+    url = url.replace(/\/$/, '');
+
+    // Remove protocol for validation, then add it back
+    url = url.replace(/^https?:\/\//, '');
+
+    // Remove any paths that might be there (keep just the domain)
+    url = url.split('/')[0];
+
+    return `https://${url}`;
+}
+
+function createRoturConfig(url, name) {
+    const baseUrl = cleanRoturUrl(url);
+    const serverId = 'rotur_' + Date.now();
+
+    return {
+        id: serverId,
+        name: name || 'roturPhotos',
+        uploadUrl: `${baseUrl}/api/image/upload`,
+        method: 'POST',
+        fileParamName: null,
+        headers: [],
+        bodyParams: [],
+        responseUrlPath: '$.path',
+        urlTemplate: `${baseUrl}/{id}`,
+        requiresAuth: true,
+        authType: 'session',
+        enabled: true
+    };
 }
 
 function addHeaderRow(key = '', value = '') {
@@ -4019,48 +4095,60 @@ function addBodyParamRow(key = '', value = '') {
 }
 
 // Handle server config form submission
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     const serverForm = document.getElementById('server-config-form');
     if (serverForm) {
-        serverForm.addEventListener('submit', function(e) {
+        serverForm.addEventListener('submit', function (e) {
             e.preventDefault();
 
             const formData = new FormData(serverForm);
-            const headers = [];
-            document.querySelectorAll('#headers-list .param-row').forEach(row => {
-                const key = row.querySelector('.header-key').value.trim();
-                const value = row.querySelector('.header-value').value.trim();
-                if (key && value) {
-                    headers.push({ key, value });
+            const serverType = formData.get('serverType');
+
+            let config;
+
+            if (serverType === 'rotur') {
+                // Handle roturPhotos server creation
+                const url = formData.get('roturUrl');
+                const name = formData.get('roturName');
+                config = createRoturConfig(url, name);
+            } else {
+                // Handle custom server creation
+                const headers = [];
+                document.querySelectorAll('#headers-list .param-row').forEach(row => {
+                    const key = row.querySelector('.header-key').value.trim();
+                    const value = row.querySelector('.header-value').value.trim();
+                    if (key && value) {
+                        headers.push({ key, value });
+                    }
+                });
+
+                const bodyParams = [];
+                document.querySelectorAll('#body-params-list .param-row').forEach(row => {
+                    const key = row.querySelector('.param-key').value.trim();
+                    const value = row.querySelector('.param-value').value.trim();
+                    if (key && value) {
+                        bodyParams.push({ key, value });
+                    }
+                });
+
+                config = {
+                    id: editingServerId || window.generateServerId(),
+                    name: formData.get('name'),
+                    uploadUrl: formData.get('uploadUrl'),
+                    method: formData.get('method'),
+                    enabled: formData.get('enabled') === 'true',
+                    fileParamName: formData.get('fileParamName') || null,
+                    responseUrlPath: formData.get('responseUrlPath') || null,
+                    urlTemplate: formData.get('urlTemplate') || null,
+                    requiresAuth: formData.get('requiresAuth') === 'true',
+                    authType: formData.get('authType'),
+                    headers,
+                    bodyParams
+                };
+
+                if (formData.get('authParam')) {
+                    config.apiKey = formData.get('authParam');
                 }
-            });
-
-            const bodyParams = [];
-            document.querySelectorAll('#body-params-list .param-row').forEach(row => {
-                const key = row.querySelector('.param-key').value.trim();
-                const value = row.querySelector('.param-value').value.trim();
-                if (key && value) {
-                    bodyParams.push({ key, value });
-                }
-            });
-
-            const config = {
-                id: editingServerId || window.generateServerId(),
-                name: formData.get('name'),
-                uploadUrl: formData.get('uploadUrl'),
-                method: formData.get('method'),
-                enabled: formData.get('enabled') === 'true',
-                fileParamName: formData.get('fileParamName') || null,
-                responseUrlPath: formData.get('responseUrlPath') || null,
-                urlTemplate: formData.get('urlTemplate') || null,
-                requiresAuth: formData.get('requiresAuth') === 'true',
-                authType: formData.get('authType'),
-                headers,
-                bodyParams
-            };
-
-            if (formData.get('authParam')) {
-                config.apiKey = formData.get('authParam');
             }
 
             window.addMediaServer(config);
@@ -4082,7 +4170,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Upload file input handler
     const uploadInput = document.getElementById('image-upload-input');
     if (uploadInput) {
-        uploadInput.addEventListener('change', function(e) {
+        uploadInput.addEventListener('change', function (e) {
             const files = e.target.files;
             if (files.length > 0) {
                 handleFileUpload(files);
@@ -4097,17 +4185,8 @@ document.addEventListener('DOMContentLoaded', function() {
         messagesContainer.addEventListener('dragover', handleDragOver);
         messagesContainer.addEventListener('drop', handleDrop);
     }
-    const dropzone = document.getElementById('upload-dropzone');
-    if (dropzone) {
-        dropzone.addEventListener('dragenter', handleDragEnter);
-        dropzone.addEventListener('dragleave', handleDragLeave);
-        dropzone.addEventListener('dragover', handleDragOver);
-        dropzone.addEventListener('drop', handleDrop);
-    }
     const inputArea = document.querySelector('.input-area');
     if (inputArea) {
-        inputArea.addEventListener('dragenter', handleDragEnter);
-        inputArea.addEventListener('dragleave', handleDragLeave);
         inputArea.addEventListener('dragover', handleDragOver);
         inputArea.addEventListener('drop', handleDrop);
     }
@@ -4118,36 +4197,14 @@ async function triggerImageUpload() {
     document.getElementById('image-upload-input').click();
 }
 
-let dragCounter = 0;
-let hideDropzoneTimeout = null;
-
 function handleDragOver(e) {
     e.preventDefault();
     e.stopPropagation();
 }
 
-function handleDragEnter(e) {
-    e.preventDefault();
-    e.stopPropagation();
-    dragCounter++;
-    showDropzone();
-}
-
-function handleDragLeave(e) {
-    e.preventDefault();
-    e.stopPropagation();
-    dragCounter--;
-    if (dragCounter <= 0) {
-        dragCounter = 0;
-        queueHideDropzone();
-    }
-}
-
 function handleDrop(e) {
     e.preventDefault();
     e.stopPropagation();
-    dragCounter = 0;
-    hideDropzone();
 
     const files = e.dataTransfer.files;
     const imageFiles = Array.from(files).filter(file => file.type.startsWith('image/'));
@@ -4157,61 +4214,43 @@ function handleDrop(e) {
     }
 }
 
-function showDropzone() {
-    if (hideDropzoneTimeout) {
-        clearTimeout(hideDropzoneTimeout);
-        hideDropzoneTimeout = null;
-    }
-    const dropzone = document.getElementById('upload-dropzone');
-    dropzone.classList.add('visible', 'active');
-    document.querySelector('.input-area').style.pointerEvents = 'none';
-}
-
-function queueHideDropzone() {
-    hideDropzoneTimeout = setTimeout(hideDropzone, 100);
-}
-
-function hideDropzone() {
-    const dropzone = document.getElementById('upload-dropzone');
-    dropzone.classList.remove('visible', 'active');
-    setTimeout(() => {
-        dropzone.classList.remove('active');
-    }, 200);
-    document.querySelector('.input-area').style.pointerEvents = '';
-}
-
 async function handleFileUpload(files) {
-    const server = window.getEnabledMediaServer();
-    if (!server) {
-        showError('No media server configured. Please add a media server in settings.');
-        openSettings();
-        return;
-    }
+const server = window.getEnabledMediaServer();
+if (!server) {
+showError('No media server configured. Please add a media server in settings.');
+openSettings();
+return;
+}
 
-    for (const file of files) {
-        try {
-            showUploadProgress(file.name);
-            const imageUrl = await window.uploadImage(file, server);
-            hideUploadProgress();
+const input = document.getElementById('message-input');
 
-            if (!state.currentChannel) {
-                showError('Please select a channel first');
-                return;
-            }
+for (const file of files) {
+try {
+showUploadProgress(file.name);
+const imageUrl = await window.uploadImage(file, server);
+hideUploadProgress();
 
-            const msg = {
-                cmd: 'message_new',
-                channel: state.currentChannel.name,
-                content: imageUrl
-            };
-
-            wsSend(msg, state.serverUrl);
-        } catch (error) {
-            hideUploadProgress();
-            showError(`Failed to upload ${file.name}: ${error.message}`);
-            console.error('Upload error:', error);
-        }
-    }
+// Insert the image URL into the input box
+if (input) {
+const cursorPosition = input.selectionStart || input.value.length;
+const beforeCursor = input.value.substring(0, cursorPosition);
+const afterCursor = input.value.substring(cursorPosition);
+// Add space before URL if needed
+const spaceBefore = beforeCursor.length > 0 && !beforeCursor.endsWith(' ') ? ' ' : '';
+// Add space after URL
+const spaceAfter = afterCursor.length > 0 && !afterCursor.startsWith(' ') ? ' ' : '';
+input.value = beforeCursor + spaceBefore + imageUrl + spaceAfter + afterCursor;
+// Move cursor after the inserted URL
+const newPosition = cursorPosition + spaceBefore.length + imageUrl.length + spaceAfter.length;
+input.setSelectionRange(newPosition, newPosition);
+input.focus();
+}
+} catch (error) {
+hideUploadProgress();
+showError(`Failed to upload ${file.name}: ${error.message}`);
+console.error('Upload error:', error);
+}
+}
 }
 
 let uploadProgressElement = null;
@@ -4233,7 +4272,7 @@ function hideUploadProgress() {
 function showDMContextMenu(event, dmServer) {
     const menu = document.getElementById('context-menu');
     menu.innerHTML = '';
-    
+
     const removeItem = document.createElement('div');
     removeItem.className = 'context-menu-item';
     removeItem.textContent = 'Remove from sidebar';
@@ -4245,16 +4284,16 @@ function showDMContextMenu(event, dmServer) {
         renderGuildSidebar();
         menu.style.display = 'none';
     };
-    
+
     menu.appendChild(removeItem);
-    
+
     const menuWidth = 180;
     let x = event.clientX;
     let y = event.clientY;
-    
+
     if (x + menuWidth > window.innerWidth) x = window.innerWidth - menuWidth - 6;
     if (y + 100 > window.innerHeight) y = window.innerHeight - 100;
-    
+
     menu.style.left = x + 'px';
     menu.style.top = y + 'px';
     menu.style.display = 'block';

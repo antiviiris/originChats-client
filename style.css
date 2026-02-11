@@ -19,7 +19,7 @@
     --success: #3ba55c;
     --shadow: 0 4px 6px rgba(0, 0, 0, 0.5);
     --font-main: 'gg sans', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    
+
     /* Opacity variants of primary */
     --primary-08: rgba(78, 80, 88, 0.08);
     --primary-10: rgba(78, 80, 88, 0.1);
@@ -245,7 +245,8 @@ p {
 @media (max-width: 768px) {
     .channels {
         position: fixed;
-        left: 56px; /* Start after guild sidebar on mobile */
+        left: 56px;
+        /* Start after guild sidebar on mobile */
         top: 0;
         bottom: 0;
         z-index: 100;
@@ -261,7 +262,8 @@ p {
     #members-list {
         position: fixed;
         top: 0;
-        left: 56px; /* Start after guild sidebar on mobile */
+        left: 56px;
+        /* Start after guild sidebar on mobile */
         right: 0;
         bottom: 0;
         background: rgba(0, 0, 0, 0.7);
@@ -278,7 +280,8 @@ p {
         display: none;
         position: fixed;
         top: 0;
-        left: 56px; /* Start after guild sidebar on mobile */
+        left: 56px;
+        /* Start after guild sidebar on mobile */
         right: 0;
         bottom: 0;
         background: rgba(0, 0, 0, 0.7);
@@ -468,7 +471,8 @@ p {
     margin-bottom: 0;
 }
 
-.message-text ul, .message-text ol {
+.message-text ul,
+.message-text ol {
     margin: 8px 0;
     padding-left: 20px;
 }
@@ -542,17 +546,17 @@ blockquote {
     .message-text.emoji-only {
         font-size: 40px;
     }
-    
+
     .message-group .avatar {
         width: 36px;
         height: 36px;
         margin-right: 10px;
     }
-    
+
     .message-single {
         margin-left: 46px;
     }
-    
+
     .message-single .hover-timestamp {
         left: -46px;
         width: 44px;
@@ -751,39 +755,6 @@ a {
     background: var(--surface-hover);
 }
 
-.upload-dropzone {
-    display: none;
-    border: 2px dashed #5865F2;
-    border-radius: 8px;
-    padding: 20px;
-    text-align: center;
-    background: rgba(88, 101, 242, 0.1);
-    color: #5865F2;
-    margin-bottom: 8px;
-    transition: all 0.3s ease;
-    animation: fadeIn 0.2s ease;
-}
-
-.upload-dropzone.active {
-    display: block;
-}
-
-.upload-dropzone.visible {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 12px;
-}
-
-.upload-dropzone i {
-    animation: pulse 1s ease-in-out infinite;
-}
-
-.upload-dropzone span {
-    font-size: 14px;
-    font-weight: 600;
-}
-
 .modal-overlay {
     position: fixed;
     top: 0;
@@ -818,6 +789,7 @@ a {
         opacity: 0;
         transform: translateY(20px) scale(0.95);
     }
+
     to {
         opacity: 1;
         transform: translateY(0) scale(1);
@@ -1355,7 +1327,7 @@ a {
     text-overflow: ellipsis;
 }
 
-.message-single:hover > .message-group-content > .hover-timestamp {
+.message-single:hover>.message-group-content>.hover-timestamp {
     color: var(--text-dim);
 }
 
@@ -1651,6 +1623,7 @@ a {
         background: rgba(155, 135, 245, 0.2);
         box-shadow: 0 0 20px rgba(155, 135, 245, 0.3);
     }
+
     100% {
         background: transparent;
         box-shadow: none;
@@ -1848,14 +1821,14 @@ a {
         margin-top: 8px;
         display: block;
     }
-    
+
     .youtube-embed {
         max-width: 100%;
         border-radius: 12px;
         margin-top: 8px;
         display: block;
     }
-    
+
     .youtube-thumbnail {
         border-radius: 12px 12px 0 0;
         display: block;
@@ -2034,20 +2007,20 @@ a {
         padding: 12px;
         gap: 10px;
     }
-    
+
     .github-avatar {
         width: 40px;
         height: 40px;
     }
-    
+
     .github-name {
         font-size: 15px;
     }
-    
+
     .stat-value {
         font-size: 15px;
     }
-    
+
     .stat-label {
         font-size: 11px;
     }
@@ -2226,6 +2199,7 @@ a {
     display: block;
     opacity: 1;
 }
+
 @media (max-width: 768px) {
     .reaction-picker {
         position: fixed;
@@ -2246,6 +2220,7 @@ a {
         from {
             transform: translateY(100%);
         }
+
         to {
             transform: translateY(0);
         }
@@ -2260,7 +2235,7 @@ a {
         overflow-y: auto;
         -webkit-overflow-scrolling: touch;
     }
-    
+
     .reaction-picker-search {
         margin-bottom: 8px;
     }
@@ -2878,6 +2853,7 @@ pre {
         transform: scale(1);
     }
 }
+
 .message-actions {
     position: absolute;
     top: 8px;
@@ -2920,6 +2896,7 @@ pre {
     opacity: 1;
     color: var(--text);
 }
+
 .blocked-notice {
     padding: 8px 10px;
     background: var(--surface-light);
@@ -3439,64 +3416,64 @@ pre {
         transition: left 0.3s ease;
         visibility: hidden;
     }
-    
+
     .guild-sidebar.open {
         left: 0;
         visibility: visible;
     }
-    
+
     .guild-item {
         width: 40px;
         height: 40px;
     }
-    
+
     .guild-icon {
         width: 40px;
         height: 40px;
     }
-    
+
     .guild-icon svg {
         width: 20px;
         height: 20px;
     }
-    
+
     .guild-pill {
         width: 4px;
         left: -10px;
     }
-    
+
     .guild-item.active .guild-pill {
         height: 32px;
     }
-    
+
     /* Disable tooltips on touch devices */
     .guild-item::after {
         display: none;
     }
-    
+
     /* Disable drag and drop on mobile */
     .guild-item {
         -webkit-user-drag: none;
         user-select: none;
     }
-    
+
     /* Adjust channels when guild sidebar is open */
     .channels {
         left: 56px;
         width: calc(100% - 56px);
         max-width: 280px;
     }
-    
+
     /* When guild sidebar is closed, channels should be full screen */
     .channels:not(.open) {
         left: 0;
         width: 100%;
     }
-    
+
     #members-list {
         left: 0;
     }
-    
+
     .overlay {
         left: 0;
     }
@@ -3538,7 +3515,8 @@ pre {
     border-radius: 0 2px 2px 0;
 }
 
-html, body {
+html,
+body {
     overflow-x: hidden;
     touch-action: pan-y;
 }
@@ -3596,6 +3574,7 @@ html, body {
         opacity: 0;
         transform: scale(0.9) translateY(20px);
     }
+
     to {
         opacity: 1;
         transform: scale(1) translateY(0);
@@ -3972,7 +3951,7 @@ html, body {
         padding: 0;
         align-items: flex-end;
     }
-    
+
     .account-card {
         max-width: 100%;
         width: 100%;
@@ -3981,18 +3960,19 @@ html, body {
         border-radius: 0;
         animation: slideUpFull 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
-    
+
     @keyframes slideUpFull {
         from {
             opacity: 0;
             transform: translateY(100%);
         }
+
         to {
             opacity: 1;
             transform: translateY(0);
         }
     }
-    
+
     .account-banner {
         height: 160px;
     }
@@ -4025,7 +4005,7 @@ html, body {
     .account-section {
         padding: 20px 24px;
     }
-    
+
     .account-close-btn {
         top: 20px;
         right: 20px;
@@ -4033,11 +4013,11 @@ html, body {
         height: 44px;
         background: rgba(0, 0, 0, 0.3);
     }
-    
+
     .account-close-btn:hover {
         background: rgba(0, 0, 0, 0.5);
     }
-    
+
     /* Mobile Members List Improvements */
     #members-list {
         background: #1a1a1a;
@@ -4045,14 +4025,14 @@ html, body {
         width: 100%;
         max-width: 100%;
     }
-    
+
     .members-header {
         display: flex;
         padding: 16px;
         background: var(--surface);
         border-bottom: 1px solid var(--border);
     }
-    
+
     .members-header h3 {
         font-size: 18px;
         font-weight: 700;
@@ -4060,7 +4040,7 @@ html, body {
         text-transform: none;
         letter-spacing: 0;
     }
-    
+
     .close-members {
         display: flex;
         align-items: center;
@@ -4071,42 +4051,42 @@ html, body {
         background: rgba(255, 255, 255, 0.1);
         transition: background 0.2s;
     }
-    
+
     .close-members:hover {
         background: rgba(255, 255, 255, 0.2);
     }
-    
+
     .section {
         padding: 16px;
     }
-    
+
     .section h2 {
         font-size: 12px;
         font-weight: 700;
         margin-bottom: 16px;
         padding-left: 12px;
     }
-    
+
     .member {
         padding: 10px 12px;
         margin-bottom: 4px;
         border-radius: 8px;
         gap: 12px;
     }
-    
+
     .member:hover {
         background: rgba(255, 255, 255, 0.08);
     }
-    
+
     .member img {
         width: 44px;
         height: 44px;
     }
-    
+
     .member .name {
         font-size: 16px;
     }
-    
+
     .member::after {
         width: 12px;
         height: 12px;
@@ -4114,163 +4094,164 @@ html, body {
         right: 8px;
         border: 2px solid #1a1a1a;
     }
-    
+
     /* Mobile Message Styling Improvements */
     .messages {
         padding: 12px 12px 40px;
         gap: 4px;
     }
-    
+
     .message-group {
         padding: 4px 0;
     }
-    
+
     .message-group .avatar {
         width: 44px;
         height: 44px;
         margin-right: 12px;
     }
-    
+
     .message-group-content {
         min-width: 0;
     }
-    
+
     .message-header {
         gap: 8px;
         margin-bottom: 4px;
         margin-top: 4px;
     }
-    
+
     .username {
         font-size: 15px;
     }
-    
+
     .timestamp {
         font-size: 12px;
     }
-    
-.message-text {
-    font-size: 15px;
-    line-height: 1.5;
-    word-wrap: break-word;
-    word-break: break-word;
-    white-space: pre-wrap;
-    color: #e0e0e0;
-    max-width: 100%;
-    overflow: visible;
-}
 
-.message-text p {
-    margin: 0 0 8px 0;
-}
+    .message-text {
+        font-size: 15px;
+        line-height: 1.5;
+        word-wrap: break-word;
+        word-break: break-word;
+        white-space: pre-wrap;
+        color: #e0e0e0;
+        max-width: 100%;
+        overflow: visible;
+    }
 
-.message-text p:last-child {
-    margin-bottom: 0;
-}
+    .message-text p {
+        margin: 0 0 8px 0;
+    }
 
-.message-text ul, .message-text ol {
-    margin: 8px 0;
-    padding-left: 20px;
-}
+    .message-text p:last-child {
+        margin-bottom: 0;
+    }
 
-.message-text li {
-    margin: 4px 0;
-}
+    .message-text ul,
+    .message-text ol {
+        margin: 8px 0;
+        padding-left: 20px;
+    }
 
-.message-text blockquote {
-    margin: 8px 0;
-    padding: 8px 12px;
-    border-left: 4px solid var(--primary);
-    background: rgba(155, 135, 245, 0.1);
-    border-radius: 0 8px 8px 0;
-}
+    .message-text li {
+        margin: 4px 0;
+    }
 
-.message-text code {
-    background: rgba(255, 255, 255, 0.1);
-    padding: 2px 6px;
-    border-radius: 4px;
-    font-family: 'Consolas', 'Monaco', monospace;
-    font-size: 0.9em;
-}
+    .message-text blockquote {
+        margin: 8px 0;
+        padding: 8px 12px;
+        border-left: 4px solid var(--primary);
+        background: rgba(155, 135, 245, 0.1);
+        border-radius: 0 8px 8px 0;
+    }
 
-.message-text pre {
-    background: rgba(0, 0, 0, 0.3);
-    padding: 12px;
-    border-radius: 8px;
-    overflow-x: auto;
-    margin: 8px 0;
-}
+    .message-text code {
+        background: rgba(255, 255, 255, 0.1);
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-family: 'Consolas', 'Monaco', monospace;
+        font-size: 0.9em;
+    }
 
-.message-text pre code {
-    background: transparent;
-    padding: 0;
-}
+    .message-text pre {
+        background: rgba(0, 0, 0, 0.3);
+        padding: 12px;
+        border-radius: 8px;
+        overflow-x: auto;
+        margin: 8px 0;
+    }
 
-.message-text ::selection {
-    background: rgba(155, 135, 245, 0.3);
-}
-    
+    .message-text pre code {
+        background: transparent;
+        padding: 0;
+    }
+
+    .message-text ::selection {
+        background: rgba(155, 135, 245, 0.3);
+    }
+
     .message-single {
         margin-left: 56px;
         padding: 2px 0;
     }
-    
+
     .message-reply {
         max-width: 100%;
         padding: 6px 0;
         margin-bottom: 4px;
     }
-    
+
     .message-reply img {
         width: 36px;
         height: 36px;
     }
-    
+
     .message-reply div {
         font-size: 13px;
     }
-    
+
     .message-image {
         max-height: 300px;
         margin-top: 8px;
         border-radius: 12px;
     }
-    
+
     .message-actions-bar {
         display: none;
     }
-    
+
     .embed-container {
         max-width: 100%;
         border-radius: 12px;
         margin-top: 8px;
         position: static;
     }
-    
+
     .youtube-embed {
         max-width: 100%;
         border-radius: 12px;
         margin-top: 8px;
     }
-    
+
     .youtube-thumbnail {
         border-radius: 12px 12px 0 0;
     }
-    
+
     .message-reactions {
         margin-top: 8px;
         gap: 8px;
     }
-    
+
     .reaction {
         padding: 6px 10px;
         font-size: 16px;
     }
-    
+
     .reaction-count {
         font-size: 13px;
     }
-    
+
     /* Mobile Context Menu - Bottom Sheet Style */
     .context-menu {
         width: 100%;
@@ -4294,43 +4275,43 @@ html, body {
     .context-menu-item:last-child {
         border-bottom: none;
     }
-    
+
     /* Mobile Input Area */
     .input-area {
         padding: 12px;
     }
-    
+
     .input-wrapper {
         padding: 6px;
         gap: 6px;
     }
-    
+
     #message-input {
         font-size: 16px;
         padding: 10px;
         min-height: 44px;
     }
-    
+
     .icon-btn {
         width: 40px;
         height: 40px;
     }
-    
+
     .icon-btn svg {
         width: 24px;
         height: 24px;
     }
-    
+
     .send-btn {
         width: 44px;
         height: 44px;
     }
-    
+
     .send-btn svg {
         width: 22px;
         height: 22px;
     }
-    
+
     /* Mobile Typing Indicator */
     .typing {
         left: 16px;
@@ -4339,7 +4320,7 @@ html, body {
         padding: 6px 12px;
         border-radius: 16px;
     }
-    
+
     /* Mobile Reply Bar */
     .reply-bar {
         padding: 12px 16px;
@@ -4369,6 +4350,7 @@ html, body {
         opacity: 0;
         transform: translateY(8px) scale(0.98);
     }
+
     to {
         opacity: 1;
         transform: translateY(0) scale(1);
@@ -4632,6 +4614,7 @@ html, body {
         from {
             transform: translateY(100%);
         }
+
         to {
             transform: translateY(0);
         }

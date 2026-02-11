@@ -35,7 +35,8 @@
         <div class="content">
             <div class="guild-sidebar">
                 <div class="guild-list" id="guild-list">
-                    <div class="guild-item home-guild" onclick="showHome()" title="Direct Messages" data-url="dms.mistium.com">
+                    <div class="guild-item home-guild" onclick="showHome()" title="Direct Messages"
+                        data-url="dms.mistium.com">
                         <div class="guild-icon">
                             <i data-lucide="message-circle"></i>
                         </div>
@@ -65,7 +66,8 @@
                         <div class="status">Online</div>
                     </div>
                     <div class="user-section-actions">
-                        <button class="user-section-btn" onclick="event.stopPropagation(); openSettings()" title="Settings">
+                        <button class="user-section-btn" onclick="event.stopPropagation(); openSettings()"
+                            title="Settings">
                             <i data-lucide="settings"></i>
                         </button>
                         <button class="user-section-btn" onclick="event.stopPropagation(); logout()" title="Logout">
@@ -86,15 +88,13 @@
                 <div class="input-area">
                     <div id="reply-bar" class="reply-bar">
                         <span id="reply-text">Replying to user</span>
-                        <span class="close-reply" onclick="if(window.editingMessage) window.cancelEdit(); else cancelReply();">
+                        <span class="close-reply"
+                            onclick="if(window.editingMessage) window.cancelEdit(); else cancelReply();">
                             <i data-lucide="x" style="width: 16px; height: 16px;"></i>
                         </span>
                     </div>
 
-                    <div id="upload-dropzone" class="upload-dropzone">
-                        <i data-lucide="upload-cloud" style="width: 48px; height: 48px;"></i>
-                        <span>Drop images here to upload</span>
-                    </div>
+
 
                     <div class="input-wrapper">
                         <button id="upload-btn" class="icon-btn" onclick="triggerImageUpload()" title="Upload image">
@@ -202,7 +202,8 @@
         </div>
     </div>
 
-    <div id="server-config-modal" class="modal-overlay" onclick="if(event.target === this) closeServerConfigModal()" style="display: none;">
+    <div id="server-config-modal" class="modal-overlay" onclick="if(event.target === this) closeServerConfigModal()"
+        style="display: none;">
         <div class="modal-container">
             <button class="modal-close-btn" onclick="closeServerConfigModal()">
                 <i data-lucide="x"></i>
@@ -211,83 +212,112 @@
                 <h2 id="server-modal-title">Add Media Server</h2>
                 <form id="server-config-form" class="server-config-form">
                     <div class="form-group">
-                        <label class="form-label">Name</label>
-                        <input type="text" class="setting-input" name="name" placeholder="e.g., Imgur" required>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Upload URL</label>
-                        <input type="url" class="setting-input" name="uploadUrl" placeholder="https://api.imgur.com/3/image" required>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label class="form-label">Method</label>
-                            <select class="setting-input" name="method">
-                                <option value="POST">POST</option>
-                                <option value="PUT">PUT</option>
-                                <option value="PATCH">PATCH</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Enabled</label>
-                            <select class="setting-input" name="enabled">
-                                <option value="true">Yes</option>
-                                <option value="false">No</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">File Parameter Name</label>
-                        <input type="text" class="setting-input" name="fileParamName" placeholder="image (leave empty for default)">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Response URL Path</label>
-                        <input type="text" class="setting-input" name="responseUrlPath" placeholder="$.data.link">
-                        <small class="setting-hint">JSON path to URL or ID in response. Use $. for root.</small>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">URL Template</label>
-                        <input type="text" class="setting-input" name="urlTemplate" placeholder="https://example.com/{id}">
-                        <small class="setting-hint">Use {id}, {username}, {name}, {timestamp}, or {url} as placeholders.</small>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Requires Authentication</label>
-                        <select class="setting-input" name="requiresAuth">
-                            <option value="false">No</option>
-                            <option value="true">Yes</option>
+                        <label class="form-label">Server Type</label>
+                        <select class="setting-input" name="serverType" onchange="updateServerTypeOptions()">
+                            <option value="rotur">roturPhotos</option>
+                            <option value="custom">Custom</option>
                         </select>
                     </div>
-                    <div id="auth-options" style="display: none;">
+                    <div id="rotur-server-fields">
                         <div class="form-group">
-                            <label class="form-label">Auth Type</label>
-                            <select class="setting-input" name="authType">
-                                <option value="session">Session Cookie (roturPhotos)</option>
-                                <option value="token">Bearer Token</option>
-                                <option value="apiKey">API Key in Header</option>
+                            <label class="form-label">roturPhotos URL</label>
+                            <input type="url" class="setting-input" name="roturUrl"
+                                placeholder="https://photos.rotur.dev" value="https://photos.rotur.dev">
+                            <small class="setting-hint">Enter your roturPhotos instance URL (e.g.,
+                                https://photos.rotur.dev)</small>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Server Name</label>
+                            <input type="text" class="setting-input" name="roturName" placeholder="roturPhotos"
+                                value="roturPhotos">
+                        </div>
+                    </div>
+                    <div id="custom-server-fields" style="display: none;">
+                        <div class="form-group">
+                            <label class="form-label">Name</label>
+                            <input type="text" class="setting-input" name="name" placeholder="e.g., Imgur">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Upload URL</label>
+                            <input type="url" class="setting-input" name="uploadUrl"
+                                placeholder="https://api.imgur.com/3/image">
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">Method</label>
+                                <select class="setting-input" name="method">
+                                    <option value="POST">POST</option>
+                                    <option value="PUT">PUT</option>
+                                    <option value="PATCH">PATCH</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Enabled</label>
+                                <select class="setting-input" name="enabled">
+                                    <option value="true">Yes</option>
+                                    <option value="false">No</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">File Parameter Name</label>
+                            <input type="text" class="setting-input" name="fileParamName"
+                                placeholder="image (leave empty for default)">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Response URL Path</label>
+                            <input type="text" class="setting-input" name="responseUrlPath" placeholder="$.data.link">
+                            <small class="setting-hint">JSON path to URL or ID in response. Use $. for root.</small>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">URL Template</label>
+                            <input type="text" class="setting-input" name="urlTemplate"
+                                placeholder="https://example.com/{id}">
+                            <small class="setting-hint">Use {id}, {username}, {name}, {timestamp}, or {url} as
+                                placeholders.</small>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Requires Authentication</label>
+                            <select class="setting-input" name="requiresAuth">
+                                <option value="false">No</option>
+                                <option value="true">Yes</option>
                             </select>
                         </div>
-                        <div id="auth-param-group" class="form-group" style="display: none;">
-                            <label class="form-label" id="auth-param-label">API Key</label>
-                            <input type="text" class="setting-input" name="authParam" placeholder="Enter your key...">
+                        <div id="auth-options" style="display: none;">
+                            <div class="form-group">
+                                <label class="form-label">Auth Type</label>
+                                <select class="setting-input" name="authType">
+                                    <option value="session">Session Cookie (roturPhotos)</option>
+                                    <option value="token">Bearer Token</option>
+                                    <option value="apiKey">API Key in Header</option>
+                                </select>
+                            </div>
+                            <div id="auth-param-group" class="form-group" style="display: none;">
+                                <label class="form-label" id="auth-param-label">API Key</label>
+                                <input type="text" class="setting-input" name="authParam"
+                                    placeholder="Enter your key...">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Headers</label>
+                            <div id="headers-list"></div>
+                            <button type="button" class="btn btn-secondary" onclick="addHeaderRow()">
+                                <i data-lucide="plus"></i>
+                                Add Header
+                            </button>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Body Parameters</label>
+                            <div id="body-params-list"></div>
+                            <button type="button" class="btn btn-secondary" onclick="addBodyParamRow()">
+                                <i data-lucide="plus"></i>
+                                Add Parameter
+                            </button>
                         </div>
                     </div>
-                    <div class="form-group">
-                        <label class="form-label">Headers</label>
-                        <div id="headers-list"></div>
-                        <button type="button" class="btn btn-secondary" onclick="addHeaderRow()">
-                            <i data-lucide="plus"></i>
-                            Add Header
-                        </button>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Body Parameters</label>
-                        <div id="body-params-list"></div>
-                        <button type="button" class="btn btn-secondary" onclick="addBodyParamRow()">
-                            <i data-lucide="plus"></i>
-                            Add Parameter
-                        </button>
-                    </div>
                     <div class="form-actions">
-                        <button type="button" class="btn btn-secondary" onclick="closeServerConfigModal()">Cancel</button>
+                        <button type="button" class="btn btn-secondary"
+                            onclick="closeServerConfigModal()">Cancel</button>
                         <button type="submit" class="btn btn-primary">Save</button>
                     </div>
                 </form>
