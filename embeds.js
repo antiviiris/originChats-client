@@ -4,10 +4,14 @@ function detectEmbedType(url) {
         return { type: 'youtube', videoId: ytMatch[1] };
     }
 
-    // Updated regex to handle various Tenor URL formats
     const tenorMatch = url.match(/tenor\.com\/view\/[\w-]+-(\d+)(?:\?.*)?$/i);
     if (tenorMatch) {
         return { type: 'tenor', id: tenorMatch[1], url };
+    }
+    
+    const githubMatch = url.match(/github\.com\/([a-zA-Z0-9-]+(?:\/[a-zA-Z0-9._-]+)?)(?:\/)?$/i);
+    if (githubMatch) {
+        return { type: 'github', path: githubMatch[1], url };
     }
 
     if (hasExtension(url, VIDEO_EXTENSIONS)) {
@@ -33,6 +37,8 @@ async function createEmbed(url) {
             return createYouTubeEmbed(embedInfo.videoId, url);
         case 'tenor':
             return await createTenorEmbed(embedInfo.id, url);
+        case 'github':
+            return await createGitHubEmbed(embedInfo.path, url);
         case 'video':
             return createVideoEmbed(embedInfo.url);
         case 'image':
@@ -313,4 +319,341 @@ async function isImageUrl(url, timeout = 5000) {
         img.referrerPolicy = "no-referrer";
         img.src = url;
     });
+}
+
+async function createGitHubEmbed(usernameOrPath, originalUrl) {
+    try {
+        const pathMatch = usernameOrPath.match(/^([^/]+)\/([^/]+)$/);
+        
+        if (pathMatch) {
+            return await createGitHubRepoEmbed(pathMatch[1], pathMatch[2], originalUrl);
+        }
+        
+        const response = await fetch(`https://api.github.com/users/${usernameOrPath}`);
+        
+        if (!response.ok) {
+            throw new Error('GitHub API failed');
+        }
+
+        const data = await response.json();
+        
+        if (!data || data.message) {
+            throw new Error('User/org not found');
+        }
+
+        const isOrg = data.type === 'Organization';
+        
+        const container = document.createElement('div');
+        container.className = `embed-container ${isOrg ? 'github-org-embed' : 'github-user-embed'}`;
+
+        const wrapper = document.createElement('div');
+        wrapper.className = 'github-embed-wrapper';
+
+        const avatar = document.createElement('img');
+        avatar.src = data.avatar_url;
+        avatar.alt = `${usernameOrPath} avatar`;
+        avatar.className = 'github-avatar';
+        avatar.loading = 'lazy';
+        wrapper.appendChild(avatar);
+
+        const content = document.createElement('div');
+        content.className = 'github-content';
+
+        const header = document.createElement('div');
+        header.className = 'github-header';
+        
+        const link = document.createElement('a');
+        link.href = originalUrl;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        link.className = 'github-name';
+        link.textContent = data.name || usernameOrPath;
+        header.appendChild(link);
+
+        const typeBadge = document.createElement('span');
+        typeBadge.className = 'github-type';
+        typeBadge.textContent = isOrg ? 'Organization' : 'User';
+        header.appendChild(typeBadge);
+
+        content.appendChild(header);
+
+        if (data.description || data.bio) {
+            const bio = document.createElement('div');
+            bio.className = 'github-bio';
+            bio.textContent = isOrg ? data.description : data.bio;
+            content.appendChild(bio);
+        }
+
+        const createStat = (label, value) => {
+            const stat = document.createElement('div');
+            stat.className = 'github-stat';
+            stat.innerHTML = `<span class="stat-value">${formatNumber(value)}</span><span class="stat-label">${label}</span>`;
+            return stat;
+        };
+
+        const stats = document.createElement('div');
+        stats.className = 'github-stats';
+
+        if (isOrg) {
+            stats.appendChild(createStat('Followers', data.followers));
+            stats.appendChild(createStat('Repos', data.public_repos));
+        } else {
+            stats.appendChild(createStat('Followers', data.followers));
+            stats.appendChild(createStat('Following', data.following));
+            stats.appendChild(createStat('Repos', data.public_repos));
+        }
+
+        content.appendChild(stats);
+
+        if (data.blog) {
+            const websiteLink = document.createElement('a');
+            websiteLink.href = data.blog.startsWith('http') ? data.blog : `https://${data.blog}`;
+            websiteLink.target = '_blank';
+            websiteLink.rel = 'noopener noreferrer';
+            websiteLink.className = 'github-website';
+            websiteLink.innerHTML = `<i data-lucide="link"></i> ${data.blog.replace(/^https?:\/\//, '')}`;
+            content.appendChild(websiteLink);
+        }
+
+        if (!isOrg && (data.location || data.company)) {
+            const meta = document.createElement('div');
+            meta.className = 'github-meta';
+            
+            if (data.location) {
+                const locationEl = document.createElement('div');
+                locationEl.className = 'github-meta-item';
+                locationEl.innerHTML = `<i data-lucide="map-pin"></i> ${data.location}`;
+                meta.appendChild(locationEl);
+            }
+            
+            if (data.company) {
+                let companyText = data.company;
+                companyText = companyText.replace(/@(\w+)/g, '<a href="https://github.com/$1" target="_blank" rel="noopener noreferrer">@$1</a>');
+                const companyEl = document.createElement('div');
+                companyEl.className = 'github-meta-item';
+                companyEl.innerHTML = `<i data-lucide="building"></i> ${companyText}`;
+                meta.appendChild(companyEl);
+            }
+            
+            content.appendChild(meta);
+        }
+
+        if (data.created_at) {
+            const createdAt = document.createElement('div');
+            createdAt.className = 'github-created';
+            const joinDate = new Date(data.created_at);
+            createdAt.textContent = `${isOrg ? 'Created' : 'Joined'} ${formatDate(joinDate)}`;
+            content.appendChild(createdAt);
+        }
+
+        try {
+            const endpoint = isOrg ? 
+                `https://api.github.com/orgs/${usernameOrPath}/repos?per_page=1&sort=updated` :
+                `https://api.github.com/users/${usernameOrPath}/repos?per_page=1&sort=updated`;
+            
+            const reposResponse = await fetch(endpoint);
+            if (reposResponse.ok) {
+                const repos = await reposResponse.json();
+                if (repos.length > 0) {
+                    const latestActivity = document.createElement('div');
+                    latestActivity.className = 'github-activity';
+                    
+                    if (isOrg) {
+                        const lastUpdated = new Date(repos[0].updated_at);
+                        latestActivity.textContent = `Last activity: ${formatDate(lastUpdated)}`;
+                    } else {
+                        latestActivity.textContent = `Latest: ${repos[0].name}`;
+                    }
+                    
+                    content.appendChild(latestActivity);
+                }
+            }
+        } catch (e) {
+            console.debug('Failed to fetch repos:', e);
+        }
+
+        wrapper.appendChild(content);
+        container.appendChild(wrapper);
+
+        if (window.lucide) {
+            setTimeout(() => window.lucide.createIcons({ root: container }), 0);
+        }
+
+        return container;
+    } catch (error) {
+        console.debug('GitHub embed failed:', error);
+        return null;
+    }
+}
+
+async function createGitHubRepoEmbed(owner, repo, originalUrl) {
+    try {
+        const response = await fetch(`https://api.github.com/repos/${owner}/${repo}`);
+        
+        if (!response.ok) {
+            throw new Error('GitHub API failed');
+        }
+
+        const data = await response.json();
+        
+        if (!data || data.message) {
+            throw new Error('Repository not found');
+        }
+
+        const container = document.createElement('div');
+        container.className = 'embed-container github-repo-embed';
+
+        const wrapper = document.createElement('div');
+        wrapper.className = 'github-embed-wrapper';
+
+        const avatar = document.createElement('img');
+        avatar.src = data.owner.avatar_url;
+        avatar.alt = `${owner} avatar`;
+        avatar.className = 'github-avatar';
+        avatar.loading = 'lazy';
+        wrapper.appendChild(avatar);
+
+        const content = document.createElement('div');
+        content.className = 'github-content';
+
+        const header = document.createElement('div');
+        header.className = 'github-header';
+        
+        const link = document.createElement('a');
+        link.href = originalUrl;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        link.className = 'github-name';
+        link.textContent = data.full_name;
+        header.appendChild(link);
+
+        const typeBadge = document.createElement('span');
+        typeBadge.className = 'github-type';
+        typeBadge.textContent = 'Repository';
+        header.appendChild(typeBadge);
+
+        content.appendChild(header);
+
+        if (data.description) {
+            const bio = document.createElement('div');
+            bio.className = 'github-bio';
+            bio.textContent = data.description;
+            content.appendChild(bio);
+        }
+
+        if (data.language) {
+            const langBadge = document.createElement('div');
+            langBadge.className = 'github-language';
+            langBadge.innerHTML = `<span class="language-dot"></span>${data.language}`;
+            content.appendChild(langBadge);
+        }
+
+        const createStat = (label, value) => {
+            const stat = document.createElement('div');
+            stat.className = 'github-stat';
+            stat.innerHTML = `<span class="stat-value">${formatNumber(value)}</span><span class="stat-label">${label}</span>`;
+            return stat;
+        };
+
+        const stats = document.createElement('div');
+        stats.className = 'github-stats';
+
+        stats.appendChild(createStat('Stars', data.stargazers_count));
+        stats.appendChild(createStat('Forks', data.forks_count));
+        stats.appendChild(createStat('Issues', data.open_issues_count));
+
+        content.appendChild(stats);
+
+        if (data.homepage) {
+            const websiteLink = document.createElement('a');
+            websiteLink.href = data.homepage.startsWith('http') ? data.homepage : `https://${data.homepage}`;
+            websiteLink.target = '_blank';
+            websiteLink.rel = 'noopener noreferrer';
+            websiteLink.className = 'github-website';
+            websiteLink.innerHTML = `<i data-lucide="link"></i> ${data.homepage.replace(/^https?:\/\//, '')}`;
+            content.appendChild(websiteLink);
+        }
+
+        if (data.topics && data.topics.length > 0) {
+            const topicsContainer = document.createElement('div');
+            topicsContainer.className = 'github-topics';
+            
+            data.topics.slice(0, 5).forEach(topic => {
+                const topicTag = document.createElement('span');
+                topicTag.className = 'github-topic-tag';
+                topicTag.textContent = topic;
+                topicsContainer.appendChild(topicTag);
+            });
+            
+            content.appendChild(topicsContainer);
+        }
+
+        const meta = document.createElement('div');
+        meta.className = 'github-meta';
+        
+        if (data.license) {
+            const licenseEl = document.createElement('div');
+            licenseEl.className = 'github-meta-item';
+            licenseEl.innerHTML = `<i data-lucide="scale"></i> ${data.license.spdx_id || data.license.name}`;
+            meta.appendChild(licenseEl);
+        }
+        
+        if (data.created_at) {
+            const createdEl = document.createElement('div');
+            createdEl.className = 'github-meta-item';
+            const createdDate = new Date(data.created_at);
+            createdEl.innerHTML = `<i data-lucide="calendar"></i> Created ${formatDate(createdDate)}`;
+            meta.appendChild(createdEl);
+        }
+        
+        if (meta.children.length > 0) {
+            content.appendChild(meta);
+        }
+
+        if (data.updated_at) {
+            const updatedAt = document.createElement('div');
+            updatedAt.className = 'github-activity';
+            const lastUpdated = new Date(data.updated_at);
+            updatedAt.textContent = `Updated ${formatDate(lastUpdated)}`;
+            content.appendChild(updatedAt);
+        }
+
+        wrapper.appendChild(content);
+        container.appendChild(wrapper);
+
+        if (window.lucide) {
+            setTimeout(() => window.lucide.createIcons({ root: container }), 0);
+        }
+
+        return container;
+    } catch (error) {
+        console.debug('GitHub repo embed failed:', error);
+        return null;
+    }
+}
+
+function formatNumber(num) {
+    if (num === undefined || num === null) return '?';
+    if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+    if (num >= 1000) return (num / 1000).toFixed(1) + 'k';
+    return num.toString();
+}
+
+function formatDate(date) {
+    const now = new Date();
+    const diff = now - date;
+    
+    const seconds = Math.floor(diff / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+    const months = Math.floor(days / 30);
+    const years = Math.floor(days / 365);
+
+    if (years > 0) return `${years}y ago`;
+    if (months > 0) return `${months}mo ago`;
+    if (days > 0) return `${days}d ago`;
+    if (hours > 0) return `${hours}h ago`;
+    if (minutes > 0) return `${minutes}m ago`;
+    return 'Just now';
 }

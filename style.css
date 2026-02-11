@@ -1418,6 +1418,7 @@ a {
     display: block;
     position: static;
     z-index: auto;
+    margin-bottom: 8px;
 }
 
 .youtube-embed {
@@ -1565,6 +1566,185 @@ a {
 
     .tenor-gif {
         max-height: 250px;
+    }
+}
+
+/* GitHub Embed Styles */
+.github-embed-wrapper {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 16px;
+    background: var(--surface-light);
+    border-radius: 8px;
+    margin-top: 8px;
+}
+
+.github-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    object-fit: cover;
+    border: 2px solid var(--border);
+}
+
+.github-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.github-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.github-name {
+    color: var(--text);
+    font-weight: 600;
+    font-size: 16px;
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+.github-name:hover {
+    color: var(--primary);
+}
+
+.github-type {
+    background: var(--primary);
+    color: white;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.github-bio {
+    color: var(--text-dim);
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+.github-stats {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.github-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.stat-value {
+    color: var(--text);
+    font-weight: 700;
+    font-size: 16px;
+}
+
+.stat-label {
+    color: var(--text-dim);
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.github-created,
+.github-last-updated,
+.github-activity {
+    color: var(--text-dim);
+    font-size: 13px;
+}
+
+.github-meta {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.github-meta-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--text-dim);
+    font-size: 13px;
+}
+
+.github-meta-item svg {
+    width: 14px;
+    height: 14px;
+}
+
+/* Override for organizations */
+.github-org-embed .github-type {
+    background: linear-gradient(135deg, #0366d6 0%, #0884da 100%);
+    box-shadow: 0 2px 4px rgba(3, 102, 214, 0.3);
+}
+
+.github-org-embed .github-stat .stat-value {
+    color: #0366d6;
+}
+
+.github-website {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #0366d6;
+    font-size: 14px;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    padding: 4px 0;
+}
+
+.github-website:hover {
+    text-decoration: underline;
+    color: #0884da;
+}
+
+.github-website svg {
+    width: 14px;
+    height: 14px;
+}
+
+.github-meta-item a {
+    color: var(--primary);
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.github-meta-item a:hover {
+    text-decoration: underline;
+}
+
+/* Mobile styles for GitHub embeds */
+@media (max-width: 768px) {
+    .github-embed-wrapper {
+        padding: 12px;
+        gap: 10px;
+    }
+    
+    .github-avatar {
+        width: 40px;
+        height: 40px;
+    }
+    
+    .github-name {
+        font-size: 15px;
+    }
+    
+    .stat-value {
+        font-size: 15px;
+    }
+    
+    .stat-label {
+        font-size: 11px;
     }
 }
 
