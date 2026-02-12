@@ -2,6 +2,7 @@ const wsConnections = {};
 const wsStatus = {};
 const serverValidatorKeys = {};
 const authRetries = {};
+const authRetryTimeouts = {};
 
 let state = {
     token: null,
@@ -33,8 +34,12 @@ let state = {
     pendingMessageFetchesByChannel: {},
     switchingServer: false,
     renderInProgress: false,
-    authenticatingByServer: {}
+    authenticatingByServer: {},
+    pendingReplyFetches: {}
 };
+
+const pendingReplyTimeouts = {};
+let originFS = null;
 
 Object.defineProperty(state, 'channels', {
     get() {
@@ -116,6 +121,34 @@ const DEFAULT_SERVERS = [
     }
 ];
 
+async function loadServers() {
+    const path = '/application data/chats@mistium/servers.json';
+    try {
+        await originFS.createFolders('/application data/chats@mistium');
+        const content = await originFS.readFileContent(path);
+        const servers = JSON.parse(content);
+        return servers;
+    } catch (error) {
+        return [...DEFAULT_SERVERS];
+    }
+}
+
+async function saveServers() {
+    const path = '/application data/chats@mistium/servers.json';
+    const content = JSON.stringify(state.servers);
+    try {
+        await originFS.createFolders('/application data/chats@mistium');
+        if (await originFS.exists(path)) {
+            await originFS.writeFile(path, content);
+        } else {
+            await originFS.createFile(path, content);
+        }
+        await originFS.commit();
+    } catch (error) {
+        console.error('Failed to save servers:', error);
+    }
+}
+
 function getChannelDisplayName(channel) {
     return channel.display_name || channel.name;
 }
@@ -138,20 +171,30 @@ function playPingSound() {
     oscillator.stop(audioContext.currentTime + 0.3);
 }
 
-window.onload = function () {
+window.onload = async function () {
     requestNotificationPermission();
 
 
     const savedToken = localStorage.getItem('originchats_token');
-    const savedServers = localStorage.getItem('originchats_servers');
 
 
-    if (!savedServers) {
-        state.servers = [...DEFAULT_SERVERS];
-        localStorage.setItem('originchats_servers', JSON.stringify(state.servers));
+    const urlParams = new URLSearchParams(window.location.search);
+    let token = urlParams.get('token');
+
+    if (token) {
+        state.token = token;
+        localStorage.setItem('originchats_token', token);
+        window.history.replaceState({}, document.title, window.location.pathname);
+    } else if (savedToken) {
+        state.token = savedToken;
     } else {
-        state.servers = JSON.parse(savedServers);
+        window.location.href = `https://rotur.dev/auth?return_to=${encodeURIComponent(window.location.href)}`;
+        return;
     }
+
+    originFS = new window.originFSKit.OriginFSClient(state.token);
+
+    state.servers = await loadServers();
 
 
     const savedLastChannels = localStorage.getItem('originchats_last_channels');
@@ -180,20 +223,7 @@ window.onload = function () {
 
     renderGuildSidebar();
 
-    const urlParams = new URLSearchParams(window.location.search);
-    const token = urlParams.get('token');
-
-    if (token) {
-        state.token = token;
-        localStorage.setItem('originchats_token', token);
-        window.history.replaceState({}, document.title, window.location.pathname);
-        connectToAllServers();
-    } else if (savedToken) {
-        state.token = savedToken;
-        connectToAllServers();
-    } else {
-        window.location.href = `https://rotur.dev/auth?return_to=${encodeURIComponent(window.location.href)}`;
-    }
+    connectToAllServers();
 
     const input = document.getElementById('message-input');
     input.addEventListener('input', function () {
@@ -509,6 +539,15 @@ function renderAccountProfile(data) {
     const statusFromClass = getUserStatusInServer(data.username);
     const avatarSrc = data.pfp;
     const isCurrentUser = state.currentUser && state.currentUser.username === data.username;
+    const isDM = state.serverUrl === 'dms.mistium.com';
+    
+    let userRoles = [];
+    if (!isDM) {
+        const serverUser = getUserByUsernameCaseInsensitive(data.username, state.serverUrl);
+        if (serverUser && serverUser.roles && serverUser.roles.length > 0) {
+            userRoles = serverUser.roles;
+        }
+    }
 
     content.innerHTML = `
         <div class="account-banner">
@@ -542,6 +581,14 @@ function renderAccountProfile(data) {
             <div class="account-stat-label">Tier</div>
         </div>
     </div>
+    ${userRoles.length > 0 ? `
+    <div class="account-section">
+        <div class="account-section-title">Roles</div>
+        <div class="account-roles">
+            ${userRoles.map(role => `<span class="account-role">${escapeHtml(role)}</span>`).join('')}
+        </div>
+    </div>
+    ` : ''}
     ${data.bio ? `
     <div class="account-section">
         <div class="account-section-title">About Me</div>
@@ -666,7 +713,7 @@ function closeServerDropdown() {
     if (arrow) arrow.classList.remove('open');
 }
 
-function reorderServers(draggedUrl, targetUrl) {
+async function reorderServers(draggedUrl, targetUrl) {
     const draggedIndex = state.servers.findIndex(s => s.url === draggedUrl);
     const targetIndex = state.servers.findIndex(s => s.url === targetUrl);
 
@@ -679,7 +726,7 @@ function reorderServers(draggedUrl, targetUrl) {
     state.servers.splice(targetIndex, 0, draggedServer);
 
 
-    localStorage.setItem('originchats_servers', JSON.stringify(state.servers));
+    await saveServers();
 
 
     renderGuildSidebar();
@@ -1008,10 +1055,10 @@ function showGuildContextMenu(event, server) {
     menu.style.display = 'block';
 }
 
-function leaveServer(url) {
+async function leaveServer(url) {
     if (confirm('Leave this server?')) {
         state.servers = state.servers.filter(s => s.url !== url);
-        localStorage.setItem('originchats_servers', JSON.stringify(state.servers));
+        await saveServers();
 
 
         if (wsConnections[url]) {
@@ -1196,7 +1243,7 @@ async function joinDiscoveryServer(server) {
         state.unreadCountsByServer[server.url] = 0;
 
 
-        localStorage.setItem('originchats_servers', JSON.stringify(state.servers));
+        await saveServers();
 
 
         if (!wsConnections[server.url]) {
@@ -1236,6 +1283,10 @@ function switchServer(url) {
         }
     });
 
+    document.getElementById('messages').innerHTML = '<div class="loading-throbber"></div>';
+
+    clearRateLimit();
+
     state.serverUrl = url;
     localStorage.setItem('serverUrl', url);
 
@@ -1273,7 +1324,9 @@ function switchServer(url) {
         } else {
             const lastChannelName = state.lastChannelByServer[url];
             const lastChannel = lastChannelName ? channels.find(c => c.name === lastChannelName) : null;
-            selectChannel(lastChannel || channels[0]);
+            if (lastChannel || channels[0]) {
+                selectChannel(lastChannel || channels[0]);
+            }
         }
     } else {
 
@@ -1287,7 +1340,7 @@ function switchServer(url) {
     state.switchingServer = false;
 }
 
-function saveServer(server) {
+async function saveServer(server) {
 
     const isDM = server.url === 'dms.mistium.com';
     if (isDM) return;
@@ -1303,7 +1356,7 @@ function saveServer(server) {
     } else {
         Object.assign(existing, server);
     }
-    localStorage.setItem('originchats_servers', JSON.stringify(state.servers));
+    await saveServers();
 
 
     renderGuildSidebar();
@@ -1368,6 +1421,22 @@ function connectToServer(serverUrl) {
         wsConnections[url].status = 'error';
         wsStatus[url] = 'error';
         delete state.authenticatingByServer[url];
+        authRetries[url] = 0;
+        if (authRetryTimeouts[url]) {
+            clearTimeout(authRetryTimeouts[url]);
+            authRetryTimeouts[url] = null;
+        }
+        Object.keys(state.pendingReplyFetches).forEach(key => {
+            if (key.startsWith(`${url}:`)) {
+                delete state.pendingReplyFetches[key];
+            }
+        });
+        Object.keys(pendingReplyTimeouts).forEach(key => {
+            if (key.startsWith(`${url}:`)) {
+                clearTimeout(pendingReplyTimeouts[key]);
+                delete pendingReplyTimeouts[key];
+            }
+        });
         renderGuildSidebar();
         if (state.serverUrl === url) {
             showError('Connection error');
@@ -1379,9 +1448,25 @@ function connectToServer(serverUrl) {
         wsConnections[url].status = 'error';
         wsStatus[url] = 'error';
         delete state.authenticatingByServer[url];
+        authRetries[url] = 0;
+        if (authRetryTimeouts[url]) {
+            clearTimeout(authRetryTimeouts[url]);
+            authRetryTimeouts[url] = null;
+        }
         Object.keys(state.pendingMessageFetchesByChannel).forEach(key => {
             if (key.startsWith(`${url}:`)) {
                 delete state.pendingMessageFetchesByChannel[key];
+            }
+        });
+        Object.keys(state.pendingReplyFetches).forEach(key => {
+            if (key.startsWith(`${url}:`)) {
+                delete state.pendingReplyFetches[key];
+            }
+        });
+        Object.keys(pendingReplyTimeouts).forEach(key => {
+            if (key.startsWith(`${url}:`)) {
+                clearTimeout(pendingReplyTimeouts[key]);
+                delete pendingReplyTimeouts[key];
             }
         });
         delete state.loadingChannelsByServer[url];
@@ -1518,6 +1603,11 @@ async function authenticateServer(serverUrl) {
 async function retryAuthentication(serverUrl) {
     const maxRetries = 3;
 
+    if (authRetryTimeouts[serverUrl]) {
+        clearTimeout(authRetryTimeouts[serverUrl]);
+        authRetryTimeouts[serverUrl] = null;
+    }
+
     if (!authRetries[serverUrl]) {
         authRetries[serverUrl] = 0;
     }
@@ -1527,6 +1617,7 @@ async function retryAuthentication(serverUrl) {
     if (authRetries[serverUrl] >= maxRetries) {
         console.error(`Max authentication retries reached for ${serverUrl}`);
         delete state.authenticatingByServer[serverUrl];
+        delete authRetryTimeouts[serverUrl];
 
         if (wsConnections[serverUrl]) {
             wsConnections[serverUrl].status = 'error';
@@ -1550,8 +1641,12 @@ async function retryAuthentication(serverUrl) {
     console.log(`Retrying authentication for ${serverUrl} (attempt ${authRetries[serverUrl]}/${maxRetries})`);
 
 
-    await new Promise(resolve => setTimeout(resolve, 1000 * authRetries[serverUrl]));
+    await new Promise(resolve => {
+        authRetryTimeouts[serverUrl] = setTimeout(resolve, 1000 * authRetries[serverUrl]);
+    });
 
+    delete authRetryTimeouts[serverUrl];
+    delete state.authenticatingByServer[serverUrl];
     await authenticateServer(serverUrl);
 }
 
@@ -1584,6 +1679,10 @@ async function handleMessage(msg, serverUrl) {
 
 
             authRetries[serverUrl] = 0;
+            if (authRetryTimeouts[serverUrl]) {
+                clearTimeout(authRetryTimeouts[serverUrl]);
+                authRetryTimeouts[serverUrl] = null;
+            }
 
 
             serverValidatorKeys[serverUrl] = msg.val.validator_key;
@@ -1616,10 +1715,19 @@ async function handleMessage(msg, serverUrl) {
             updateUserSection();
 
             authRetries[serverUrl] = 0;
+            if (authRetryTimeouts[serverUrl]) {
+                clearTimeout(authRetryTimeouts[serverUrl]);
+                authRetryTimeouts[serverUrl] = null;
+            }
             break
 
         case 'auth_success':
             delete state.authenticatingByServer[serverUrl];
+            authRetries[serverUrl] = 0;
+            if (authRetryTimeouts[serverUrl]) {
+                clearTimeout(authRetryTimeouts[serverUrl]);
+                authRetryTimeouts[serverUrl] = null;
+            }
             state.loadingChannelsByServer[serverUrl] = true;
             wsSend({ cmd: 'channels_get' }, serverUrl);
             wsSend({ cmd: 'users_list' }, serverUrl);
@@ -1711,14 +1819,27 @@ async function handleMessage(msg, serverUrl) {
 
                         let prevUser = null;
                         let prevTime = 0;
+                        const firstNew = msg.messages[msg.messages.length - 1];
+                        const lastNewDate = firstNew ? new Date(firstNew.timestamp * 1000).toDateString() : null;
                         const frag = document.createDocumentFragment();
+
                         for (const m of msg.messages) {
-                            const sameUserRecent = prevUser === m.user && (m.timestamp - prevTime) < 300000;
+                            const sameUserRecent = prevUser === m.user && (m.timestamp - prevTime) < 300;
                             const el = makeMessageElement(m, sameUserRecent);
                             frag.appendChild(el);
                             prevUser = m.user;
                             prevTime = m.timestamp;
                         }
+
+                        if (container.firstChild) {
+                            const oldestExisting = existing[0];
+                            const existingDate = new Date(oldestExisting.timestamp * 1000).toDateString();
+                            if (lastNewDate && existingDate !== lastNewDate) {
+                                const separator = getDaySeparator(existing[0].timestamp);
+                                frag.appendChild(separator);
+                            }
+                        }
+
                         container.insertBefore(frag, container.firstChild);
 
 
@@ -1755,7 +1876,7 @@ async function handleMessage(msg, serverUrl) {
                     if (state.pendingMessageFetchesByChannel[channelKey]) {
                         delete state.pendingMessageFetchesByChannel[channelKey];
                     }
-                    if (state.serverUrl === serverUrl && ch === state.currentChannel?.name) {
+                    if (state.serverUrl === serverUrl && state.currentChannel && ch === state.currentChannel?.name) {
                         renderMessages();
                     }
                 }
@@ -1856,6 +1977,65 @@ async function handleMessage(msg, serverUrl) {
             }
             break;
 
+        case 'message_get': {
+            const replyKey = `${serverUrl}:${msg.message.id}`;
+
+            if (pendingReplyTimeouts[replyKey]) {
+                clearTimeout(pendingReplyTimeouts[replyKey]);
+                delete pendingReplyTimeouts[replyKey];
+            }
+
+            if (state.pendingReplyFetches[replyKey]) {
+                state.pendingReplyFetches[replyKey].forEach((pending) => {
+                    const replyUser = getUserByUsernameCaseInsensitive(msg.message.user) || { username: msg.message.user };
+                    const existingEl = document.querySelector(`[data-reply-to-id="${msg.message.id}"][data-msg-id="${pending.element.dataset.msgId}"]`);
+
+                    if (existingEl) {
+                        existingEl.className = 'message-reply';
+                        existingEl.style.cursor = 'pointer';
+                        existingEl.innerHTML = '';
+
+                        const avatar = getAvatar(replyUser.username);
+                        existingEl.appendChild(avatar);
+
+                        const replyText = document.createElement('div');
+
+                        const usernameSpan = document.createElement('span');
+                        usernameSpan.className = 'reply-username';
+                        usernameSpan.textContent = replyUser.username;
+                        usernameSpan.style.cursor = 'pointer';
+                        replyText.appendChild(usernameSpan);
+
+                        const contentSpan = document.createElement('span');
+                        contentSpan.className = 'reply-content';
+                        contentSpan.textContent = msg.message.content.length > 50 ? msg.message.content.substring(0, 50) + '...' : msg.message.content;
+                        replyText.appendChild(contentSpan);
+
+                        existingEl.appendChild(replyText);
+
+                        usernameSpan.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            openAccountModal(replyUser.username);
+                        });
+
+                        existingEl.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            const originalMessageEl = document.querySelector(`[data-msg-id="${msg.message.id}"]`);
+                            if (originalMessageEl) {
+                                originalMessageEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                originalMessageEl.classList.add('highlight-message');
+                                setTimeout(() => {
+                                    originalMessageEl.classList.remove('highlight-message');
+                                }, 2000);
+                            }
+                        });
+                    }
+                });
+                delete state.pendingReplyFetches[replyKey];
+            }
+            break;
+        }
+
         case 'message_edit': {
             if (!state.messagesByServer[serverUrl] || !state.messagesByServer[serverUrl][msg.channel]) {
                 break;
@@ -1938,6 +2118,7 @@ async function handleMessage(msg, serverUrl) {
             break;
 
         case 'error':
+            if (msg.src === 'message_get') break;o
             showError(msg.val);
             break;
         case 'auth_error':
@@ -2153,11 +2334,20 @@ function selectChannel(channel) {
         return;
     }
 
+    console.log(`selectChannel: server=${state.serverUrl}, channel=${channel.name}`);
+
+    if (!state.channelsByServer[state.serverUrl] || !state.channelsByServer[state.serverUrl].find(c => c.name === channel.name)) {
+        console.warn(`Channel ${channel.name} not found in current server ${state.serverUrl}`);
+        return;
+    }
+
     state.currentChannel = channel;
     state._olderStart[channel.name] = 0;
     state._olderCooldown[channel.name] = 0;
     state._olderStart[channel.name] = 0;
     state._olderCooldown[channel.name] = 0;
+
+    clearRateLimit();
 
     const messagesContainer = document.getElementById('messages');
     messagesContainer.innerHTML = '<div class="loading-throbber"></div>';
@@ -2206,7 +2396,7 @@ function selectChannel(channel) {
         targetItem.classList.add('active');
     }
 
-    if (!state.messages[channel.name]) {
+    if (!state.messagesByServer[state.serverUrl] || !state.messagesByServer[state.serverUrl][channel.name]) {
         state.pendingMessageFetchesByChannel[channelKey] = true;
         wsSend({ cmd: 'messages_get', channel: channel.name }, state.serverUrl);
     } else {
@@ -2327,6 +2517,44 @@ state._olderLoading = false;
 state._olderStart = {};
 state._olderCooldown = {};
 
+function updateAllTimestamps() {
+    document.querySelectorAll('[data-timestamp]').forEach(el => {
+        const timestamp = parseInt(el.dataset.timestamp);
+        if (timestamp) {
+            el.textContent = formatTimestamp(timestamp);
+            el.title = getFullTimestamp(timestamp);
+        }
+    });
+}
+
+setInterval(updateAllTimestamps, 60000);
+
+function getDaySeparator(timestamp) {
+    const date = new Date(timestamp * 1000);
+    const now = new Date();
+    const isToday = date.toDateString() === now.toDateString();
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const isYesterday = date.toDateString() === yesterday.toDateString();
+
+    let text;
+    if (isToday) {
+        text = 'Today';
+    } else if (isYesterday) {
+        text = 'Yesterday';
+    } else {
+        text = date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+    }
+
+    const separator = document.createElement('div');
+    separator.className = 'day-separator';
+    separator.style.position = 'relative';
+    separator.style.zIndex = '1';
+    separator.style.margin = '8px 0';
+    separator.innerHTML = `<span class="day-separator-text">${text}</span>`;
+    return separator;
+}
+
 async function renderMessages(scrollToBottom = true) {
     if (state.renderInProgress) {
         return;
@@ -2335,21 +2563,54 @@ async function renderMessages(scrollToBottom = true) {
     state.renderInProgress = true;
 
     const container = document.getElementById("messages");
+
+    if (!state.currentChannel || !state.currentChannel.name) {
+        container.innerHTML = '';
+        state.renderInProgress = false;
+        return;
+    }
+
     const channel = state.currentChannel.name;
-    const messages = state.messages[channel] || [];
+
+    if (!state.messagesByServer[state.serverUrl] || !state.messagesByServer[state.serverUrl][channel]) {
+        console.log(`renderMessages: No messages for server=${state.serverUrl}, channel=${channel}`);
+        container.innerHTML = '';
+        state.renderInProgress = false;
+        return;
+    }
+
+    console.log(`renderMessages: Rendering ${state.messagesByServer[state.serverUrl][channel].length} messages for server=${state.serverUrl}, channel=${channel}`);
+
+    const messages = state.messagesByServer[state.serverUrl][channel].slice().sort((a, b) => a.timestamp - b.timestamp);
 
     const fragment = document.createDocumentFragment();
 
     lastUser = null;
     lastTime = 0;
     lastGroup = null;
+    let consecutiveCount = 0;
+    let lastDate = null;
 
     const loadPromises = [];
 
     for (const msg of messages) {
+        const msgDate = new Date(msg.timestamp * 1000).toDateString();
+        if (lastDate !== null && msgDate !== lastDate) {
+            fragment.appendChild(getDaySeparator(msg.timestamp));
+            consecutiveCount = 0;
+        }
+        lastDate = msgDate;
+
         const isSameUserRecent =
             msg.user === lastUser &&
-            msg.timestamp - lastTime < 300000;
+            msg.timestamp - lastTime < 300 &&
+            consecutiveCount < 20;
+
+        if (msg.user === lastUser && msg.timestamp - lastTime < 300) {
+            consecutiveCount++;
+        } else {
+            consecutiveCount = 0;
+        }
 
         const element = makeMessageElement(msg, isSameUserRecent, loadPromises);
         fragment.appendChild(element);
@@ -2401,12 +2662,22 @@ async function renderMessages(scrollToBottom = true) {
 function appendMessage(msg) {
     if (!state.currentChannel || state.renderInProgress) return;
     const container = document.getElementById("messages");
-    const messages = state.messages[state.currentChannel.name] || [];
+    const messages = (state.messagesByServer[state.serverUrl]?.[state.currentChannel.name] || []);
 
     const prevMsg = messages.length > 1 ? messages[messages.length - 2] : null;
     const isSameUserRecent = prevMsg &&
         msg.user === prevMsg.user &&
-        msg.timestamp - prevMsg.timestamp < 300000;
+        msg.timestamp - prevMsg.timestamp < 300;
+
+    if (prevMsg) {
+        const prevDate = new Date(prevMsg.timestamp * 1000).toDateString();
+        const msgDate = new Date(msg.timestamp * 1000).toDateString();
+        if (prevDate !== msgDate) {
+            lastUser = null;
+            lastTime = 0;
+            container.appendChild(getDaySeparator(msg.timestamp));
+        }
+    }
 
     const element = makeMessageElement(msg, isSameUserRecent);
     const nearBottom = (beforeAppend = true) => {
@@ -2436,7 +2707,7 @@ function updateMessageContent(msgId, newContent) {
     const msgText = wrapper.querySelector('.message-text');
     if (!msgText) return;
 
-    const msg = state.messages[state.currentChannel.name]?.find(m => m.id === msgId);
+    const msg = state.messagesByServer[state.serverUrl]?.[state.currentChannel.name]?.find(m => m.id === msgId);
     if (!msg) return;
 
     const embedLinks = [];
@@ -2567,7 +2838,7 @@ function removeMessage(msgId) {
 
     if (wasGroupHead && nextSibling && nextSibling.classList.contains('message-single')) {
         const nextMsgId = nextSibling.dataset.msgId;
-        const nextMsg = state.messages[state.currentChannel.name]?.find(m => m.id === nextMsgId);
+        const nextMsg = state.messagesByServer[state.serverUrl]?.[state.currentChannel.name]?.find(m => m.id === nextMsgId);
 
         if (nextMsg) {
             const newElement = makeMessageElement(nextMsg, false);
@@ -2649,6 +2920,7 @@ function makeMessageElement(msg, isSameUserRecent, loadPromises = []) {
         const ts = document.createElement('span');
         ts.className = 'timestamp';
         ts.textContent = timestamp;
+        ts.dataset.timestamp = msg.timestamp;
         ts.title = getFullTimestamp(msg.timestamp);
         header.appendChild(usernameEl);
         header.appendChild(ts);
@@ -2664,16 +2936,19 @@ function makeMessageElement(msg, isSameUserRecent, loadPromises = []) {
     }
 
     if (isReply) {
-        const replyTo = state.messages[state.currentChannel.name].find(
+        const replyTo = state.messagesByServer[state.serverUrl]?.[state.currentChannel.name]?.find(
             m => m.id === msg.reply_to.id
         );
+
+        const replyDiv = document.createElement('div');
+        replyDiv.className = 'message-reply';
 
         if (replyTo) {
             const replyUser = getUserByUsernameCaseInsensitive(replyTo.user) || { username: replyTo.user };
 
-            const replyDiv = document.createElement('div');
-            replyDiv.className = 'message-reply';
             replyDiv.style.cursor = 'pointer';
+            replyDiv.dataset.msgId = msg.id;
+            replyDiv.dataset.replyToId = msg.reply_to.id;
             replyDiv.addEventListener('click', (e) => {
                 e.stopPropagation();
                 const originalMessageEl = document.querySelector(`[data-msg-id="${replyTo.id}"]`);
@@ -2687,7 +2962,7 @@ function makeMessageElement(msg, isSameUserRecent, loadPromises = []) {
             });
 
             const usernameSpan = document.createElement('span');
-            usernameSpan.className = 'username';
+            usernameSpan.className = 'reply-username';
             usernameSpan.textContent = replyUser.username;
             usernameSpan.style.cursor = 'pointer';
             usernameSpan.addEventListener('click', (e) => {
@@ -2696,7 +2971,8 @@ function makeMessageElement(msg, isSameUserRecent, loadPromises = []) {
             });
 
             const contentSpan = document.createElement('span');
-            contentSpan.textContent = ": " + (replyTo.content.length > 50 ? replyTo.content.substring(0, 50) + '...' : replyTo.content);
+            contentSpan.className = 'reply-content';
+            contentSpan.textContent = replyTo.content.length > 50 ? replyTo.content.substring(0, 50) + '...' : replyTo.content;
 
             replyDiv.appendChild(getAvatar(replyUser.username));
 
@@ -2706,6 +2982,79 @@ function makeMessageElement(msg, isSameUserRecent, loadPromises = []) {
 
             replyDiv.appendChild(replyText);
             groupContent.appendChild(replyDiv);
+        } else {
+            const replyKey = `${state.serverUrl}:${msg.reply_to.id}`;
+            if (!state.pendingReplyFetches[replyKey]) {
+                state.pendingReplyFetches[replyKey] = [];
+            }
+
+            const notFoundDiv = document.createElement('div');
+            notFoundDiv.className = 'message-reply reply-not-found';
+
+            const notFoundIcon = document.createElement('div');
+            notFoundIcon.innerHTML = '<i data-lucide="loader-2" class="animate-spin"></i>';
+
+            const notFoundText = document.createElement('div');
+            notFoundText.className = 'reply-username';
+            notFoundText.textContent = 'Loading...';
+
+            notFoundDiv.appendChild(notFoundIcon);
+            notFoundDiv.appendChild(notFoundText);
+            notFoundDiv.dataset.msgId = msg.id;
+            notFoundDiv.dataset.replyToId = msg.reply_to.id;
+
+            const timeoutKey = replyKey;
+
+            const timeout = setTimeout(() => {
+                if (pendingReplyTimeouts[timeoutKey]) {
+                    clearTimeout(pendingReplyTimeouts[timeoutKey]);
+                    delete pendingReplyTimeouts[timeoutKey];
+                }
+
+                if (state.pendingReplyFetches[replyKey]) {
+                    state.pendingReplyFetches[replyKey].forEach((pending) => {
+                        const existingEl = document.querySelector(`[data-reply-to-id="${msg.reply_to.id}"][data-msg-id="${pending.element.dataset.msgId}"]`);
+                        if (existingEl) {
+                            existingEl.className = 'message-reply reply-not-found';
+                            existingEl.innerHTML = '';
+
+                            const xIcon = document.createElement('div');
+                            xIcon.innerHTML = '<i data-lucide="x-circle"></i>';
+
+                            const textDiv = document.createElement('div');
+                            textDiv.className = 'reply-username';
+                            textDiv.textContent = 'Message not found';
+
+                            existingEl.appendChild(xIcon);
+                            existingEl.appendChild(textDiv);
+
+                            if (window.lucide) {
+                                window.lucide.createIcons({ root: xIcon });
+                            }
+                        }
+                    });
+                    delete state.pendingReplyFetches[replyKey];
+                }
+            }, 5000);
+
+            pendingReplyTimeouts[timeoutKey] = timeout;
+
+            state.pendingReplyFetches[replyKey].push({
+                element: notFoundDiv,
+                channel: state.currentChannel.name
+            });
+
+            wsSend({
+                cmd: 'message_get',
+                channel: state.currentChannel.name,
+                id: msg.reply_to.id
+            }, state.serverUrl);
+
+            groupContent.appendChild(notFoundDiv);
+
+            if (window.lucide) {
+                window.lucide.createIcons({ root: notFoundIcon });
+            }
         }
     }
 
@@ -2748,6 +3097,7 @@ function makeMessageElement(msg, isSameUserRecent, loadPromises = []) {
     if (!isHead) {
         const hoverTs = document.createElement('div');
         hoverTs.className = 'hover-timestamp';
+        hoverTs.dataset.timestamp = msg.timestamp;
         hoverTs.textContent = formatTimestamp(msg.timestamp);
         groupContent.appendChild(hoverTs);
 
@@ -2935,24 +3285,53 @@ function revealBlockedMessage(wrapper, msg) {
     const ts = document.createElement('span');
     ts.className = 'timestamp';
     ts.textContent = timestamp;
+    ts.dataset.timestamp = msg.timestamp;
     ts.title = getFullTimestamp(msg.timestamp);
     header.appendChild(usernameEl);
     header.appendChild(ts);
     groupContent.appendChild(header);
 
     if (isReply) {
-        const replyTo = state.messages[state.currentChannel.name].find(m => m.id === msg.reply_to.id);
+        const replyTo = state.messagesByServer[state.serverUrl]?.[state.currentChannel.name]?.find(m => m.id === msg.reply_to.id);
+
+        const replyDiv = document.createElement('div');
+        replyDiv.className = 'message-reply';
+
         if (replyTo) {
             const replyUser = getUserByUsernameCaseInsensitive(replyTo.user) || { username: replyTo.user };
-            const replyDiv = document.createElement('div');
-            replyDiv.className = 'message-reply';
             const replyText = document.createElement('div');
-            replyText.className = 'username';
-            replyText.textContent = replyUser.username + ": " + replyTo.content;
+            replyText.className = 'reply-text';
+
+            const usernameSpan = document.createElement('span');
+            usernameSpan.className = 'reply-username';
+            usernameSpan.textContent = replyUser.username + ': ';
+
+            const contentSpan = document.createElement('span');
+            contentSpan.className = 'reply-content';
+            contentSpan.textContent = replyTo.content;
+
+            replyText.appendChild(usernameSpan);
+            replyText.appendChild(contentSpan);
+
             replyDiv.appendChild(getAvatar(replyUser.username));
             replyDiv.appendChild(replyText);
-            groupContent.appendChild(replyDiv);
+        } else {
+            const notFoundIcon = document.createElement('div');
+            notFoundIcon.innerHTML = '<i data-lucide="x-circle"></i>';
+
+            const notFoundText = document.createElement('div');
+            notFoundText.className = 'reply-text';
+            notFoundText.innerHTML = '<span class="reply-username">Message not found</span>';
+
+            replyDiv.appendChild(notFoundIcon);
+            replyDiv.appendChild(notFoundText);
+
+            if (window.lucide) {
+                window.lucide.createIcons({ root: notFoundIcon });
+            }
         }
+
+        groupContent.appendChild(replyDiv);
     }
 
     const msgText = document.createElement('div');
@@ -3282,7 +3661,7 @@ function sendMessage() {
             content
         }, state.serverUrl);
 
-        const msg = state.messages[state.currentChannel.name]?.find(m => m.id === msgId);
+        const msg = state.messagesByServer[state.serverUrl]?.[state.currentChannel.name]?.find(m => m.id === msgId);
         if (msg) {
             msg.edited = true;
             msg.editedAt = Date.now();
@@ -3872,11 +4251,26 @@ function showRateLimit(duration) {
     const rateLimitText = document.getElementById('rate-limit-text');
     const input = document.getElementById('message-input');
 
+    let messageEl = inputWrapper.querySelector('.rate-limit-message');
+    if (!messageEl) {
+        messageEl = document.createElement('div');
+        messageEl.className = 'rate-limit-message';
+        messageEl.innerHTML = '<i data-lucide="alert-triangle"></i><span id="rate-limit-message-text"></span>';
+        inputWrapper.appendChild(messageEl);
+        if (window.lucide) {
+            window.lucide.createIcons({ root: messageEl });
+        }
+    }
+
     inputWrapper.classList.add('rate-limited');
     indicator.classList.add('active');
 
     const seconds = Math.ceil(duration / 1000);
     rateLimitText.textContent = `Rate limited for ${seconds}s`;
+    const messageText = document.getElementById('rate-limit-message-text');
+    if (messageText) {
+        messageText.textContent = `Rate limited for ${seconds}s`;
+    }
 
     let remaining = duration;
 
@@ -3892,11 +4286,40 @@ function showRateLimit(duration) {
             rateLimitTimer = null;
             inputWrapper.classList.remove('rate-limited');
             indicator.classList.remove('active');
+            const messageEl = inputWrapper.querySelector('.rate-limit-message');
+            if (messageEl) {
+                messageEl.remove();
+            }
             input.focus();
         } else {
             rateLimitText.textContent = `Rate limited for ${secs}s`;
+            const messageText = document.getElementById('rate-limit-message-text');
+            if (messageText) {
+                messageText.textContent = `Rate limited for ${secs}s`;
+            }
         }
     }, 1000);
+}
+
+function clearRateLimit() {
+    if (rateLimitTimer) {
+        clearInterval(rateLimitTimer);
+        rateLimitTimer = null;
+    }
+
+    const inputWrapper = document.querySelector('.input-wrapper');
+    if (inputWrapper) {
+        inputWrapper.classList.remove('rate-limited');
+        const messageEl = inputWrapper.querySelector('.rate-limit-message');
+        if (messageEl) {
+            messageEl.remove();
+        }
+    }
+
+    const indicator = document.getElementById('rate-limit-indicator');
+    if (indicator) {
+        indicator.classList.remove('active');
+    }
 }
 
 function addDMServer(username, channel) {

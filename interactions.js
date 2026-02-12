@@ -291,7 +291,7 @@ function openReactionPicker(msgId, anchorEl) {
         picker.style.right = '0';
         picker.style.top = 'auto';
         picker.style.bottom = '0';
-        picker.style.maxWidth = '100vw';
+        picker.style.width = '100vw';
         picker.style.position = 'fixed';
         overlay.classList.add('active');
     } else {

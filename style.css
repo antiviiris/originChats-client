@@ -1025,13 +1025,77 @@ a {
     height: 14px;
 }
 
+.input-wrapper {
+    position: relative;
+    transition: all 0.3s ease;
+}
+
 .input-wrapper.rate-limited {
     opacity: 0.5;
     pointer-events: none;
+    user-select: none;
+    cursor: not-allowed;
+}
+
+.input-wrapper.rate-limited::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 100;
+    background: rgba(23, 11, 11, 0.3);
+    border-radius: 12px;
+    pointer-events: auto;
 }
 
 .input-wrapper.rate-limited #message-input {
     cursor: not-allowed;
+}
+
+.input-wrapper.rate-limited button,
+.input-wrapper.rate-limited .icon-btn,
+.input-wrapper.rate-limited .send-btn {
+    opacity: 0.3;
+    filter: grayscale(1);
+    cursor: not-allowed;
+}
+
+.input-wrapper.rate-limited .rate-limit-message {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 101;
+    background: rgba(23, 11, 11, 0.9);
+    border: 1px solid var(--danger);
+    border-radius: 8px;
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--danger);
+    font-size: 14px;
+    font-weight: 500;
+    white-space: nowrap;
+    pointer-events: auto;
+
+}
+
+.input-wrapper.rate-limited .rate-limit-message svg {
+    width: 18px;
+    height: 18px;
+    animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.6;
+    }
 }
 
 #gif-btn {
@@ -1576,30 +1640,43 @@ a {
     text-overflow: ellipsis;
     display: flex;
     align-items: center;
-    background: rgba(155, 135, 245, 0.08);
-    border-left: 3px solid var(--primary);
-    padding: 6px 10px;
-    border-radius: 0 8px 8px 0;
-    margin-bottom: 6px;
+    background: rgba(255, 255, 255, 0.03);
+    border-left: 2px solid #72767d;
+    padding: 6px 8px;
+    border-radius: 4px;
+    margin-bottom: 4px;
     cursor: pointer;
-    transition: background 0.2s ease;
+    transition: all 0.15s ease;
+    position: relative;
 }
 
 .message-reply:hover {
-    background: rgba(155, 135, 245, 0.12);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.message-reply.reply-not-found {
+    opacity: 0.6;
+}
+
+.message-reply svg {
+    width: 16px;
+    height: 16px;
+    color: #72767d;
+    flex-shrink: 0;
+    margin-right: 8px;
 }
 
 .message-reply img {
-    width: 28px;
-    height: 28px;
+    width: 20px;
+    height: 20px;
     border-radius: 50%;
     margin-right: 8px;
     flex-shrink: 0;
 }
 
-.message-reply div {
-    font-size: 13px;
-    color: #aaa;
+.message-reply .reply-text {
+    font-size: 12px;
+    color: #b9bbbe;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -1607,11 +1684,16 @@ a {
     min-width: 0;
 }
 
-.message-reply .username {
+.message-reply .reply-username {
     color: var(--primary);
-    font-weight: 600;
-    font-size: 13px;
-    margin-right: 6px;
+    font-weight: 500;
+    font-size: 12px;
+    margin-right: 4px;
+}
+
+.message-reply .reply-content {
+    color: #b9bbbe;
+    font-size: 12px;
 }
 
 .highlight-message {
@@ -2919,6 +3001,35 @@ pre {
     font-weight: 600;
 }
 
+.day-separator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 0;
+    margin: 8px 0;
+    position: relative;
+}
+
+.day-separator::before,
+.day-separator::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+    min-width: 0;
+}
+
+.day-separator-text {
+    background: var(--surface);
+    padding: 4px 16px;
+    color: var(--text-dim);
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+    position: relative;
+    z-index: 1;
+}
+
 .guild-sidebar {
     width: 72px;
     min-width: 72px;
@@ -3749,6 +3860,21 @@ body {
     color: var(--text-dim);
 }
 
+.account-roles {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.account-role {
+    background: #2b2d31;
+    color: #dcddde;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
 .account-close-btn {
     position: absolute;
     top: 16px;
@@ -4200,8 +4326,23 @@ body {
 
     .message-reply {
         max-width: 100%;
-        padding: 6px 0;
+        padding: 4px 6px;
         margin-bottom: 4px;
+    }
+
+    .message-reply img {
+        width: 24px;
+        height: 24px;
+    }
+
+    .message-reply .reply-text {
+        font-size: 12px;
+        color: #b9bbbe;
+    }
+
+    .message-reply .reply-username {
+        font-size: 12px;
+        font-weight: 500;
     }
 
     .message-reply img {
@@ -4772,4 +4913,17 @@ body {
 .logout-button svg {
     width: 16px;
     height: 16px;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.animate-spin {
+    animation: spin 1s linear infinite;
 }
